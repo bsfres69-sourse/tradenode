@@ -1213,22 +1213,34 @@
   };
 
   // =============================================
-  // AUTH
+  // AUTH — надёжный паттерн восстановления сессии
   // =============================================
 
-  // onAuthStateChange is the single source of truth for auth state.
-  // INITIAL_SESSION fires synchronously on page load — this is where we
-  // restore the session from localStorage without any network round-trip.
-  // Calling checkUser() separately caused a race condition where the page
-  // tried to render before the session was ready.
+  // Шаг 1: init() — явно читает сессию из localStorage через getSession().
+  // Это синхронная операция (без сети), поэтому не зависает.
+  // fetchProducts/fetchStats вызываются ПОСЛЕ того, как сессия известна.
+  async function init() {
+    try {
+      const { data: { session }, error } = await sb.auth.getSession();
+      if (error) console.error('[init] getSession error:', error.message);
+      await setUser(session?.user ?? null);
+    } catch (err) {
+      console.error('[init] critical error:', err.message);
+      // Даже при ошибке — рендерим UI в состоянии "не залогинен"
+      renderNavAuth(null);
+    }
+    // Загружаем данные в любом случае — независимо от авторизации
+    fetchProducts();
+    fetchStats();
+  }
+
+  // Шаг 2: onAuthStateChange слушает только ПОСЛЕДУЮЩИЕ события
+  // (вход, выход, обновление токена). INITIAL_SESSION игнорируем —
+  // он уже обработан в init() выше.
   sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'INITIAL_SESSION') return; // уже обработано в init()
     console.log('[auth]', event, session?.user?.email ?? 'no user');
     await setUser(session?.user ?? null);
-    // On the very first load, kick off data fetching AFTER we know who the user is
-    if (event === 'INITIAL_SESSION') {
-      fetchProducts();
-      fetchStats();
-    }
   });
 
   async function setUser(user) {
@@ -1240,9 +1252,15 @@
 
   async function fetchUserRole(uid) {
     try {
-      const { data } = await sb.from('profiles').select('role').eq('id', uid).single();
+      // Таймаут 4с — если profiles недоступна, не вешаем весь рендер
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000));
+      const query   = sb.from('profiles').select('role').eq('id', uid).single();
+      const { data } = await Promise.race([query, timeout]);
       State.userRole = data?.role || 'user';
-    } catch { State.userRole = 'user'; }
+    } catch (err) {
+      if (err.message !== 'timeout') console.warn('[fetchUserRole] error:', err.message);
+      State.userRole = 'user';
+    }
   }
 
   function isAdmin() { return ADMIN_ROLES.includes(State.userRole); }
@@ -1993,8 +2011,8 @@
     return false;
   };
 
-  // NOTE: fetchProducts() and fetchStats() are called inside onAuthStateChange
-  // on the INITIAL_SESSION event — this guarantees auth is restored first.
+  // Запуск: восстанавливаем сессию → рендерим UI → грузим товары
+  init();
   </script>
 </body>
 </html>
