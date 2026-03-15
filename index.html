@@ -1215,13 +1215,20 @@
   // =============================================
   // AUTH
   // =============================================
-  async function checkUser() {
-    const { data: { session } } = await sb.auth.getSession();
-    await setUser(session?.user ?? null);
-  }
 
-  sb.auth.onAuthStateChange(async (_e, session) => {
+  // onAuthStateChange is the single source of truth for auth state.
+  // INITIAL_SESSION fires synchronously on page load — this is where we
+  // restore the session from localStorage without any network round-trip.
+  // Calling checkUser() separately caused a race condition where the page
+  // tried to render before the session was ready.
+  sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('[auth]', event, session?.user?.email ?? 'no user');
     await setUser(session?.user ?? null);
+    // On the very first load, kick off data fetching AFTER we know who the user is
+    if (event === 'INITIAL_SESSION') {
+      fetchProducts();
+      fetchStats();
+    }
   });
 
   async function setUser(user) {
@@ -1427,20 +1434,22 @@
       const meta=getCatMeta(p.category), initials=(p.seller_name||'?').slice(0,2).toUpperCase();
       const rating=(Math.random()*1.5+3.5).toFixed(1), stars='★'.repeat(Math.round(rating))+'☆'.repeat(5-Math.round(rating));
       const delay=(i*.04).toFixed(2), thumbBg=`linear-gradient(135deg,${meta.color}22 0%,${meta.color}08 100%)`;
-      const deleteBtnHtml = canDel ? `<button class="card-delete-btn" onclick="event.stopPropagation();adminDeleteProduct(${p.id},this)" title="Удалить"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>` : '';
-      return `<div class="product-card" style="animation-delay:${delay}s" onclick="openProduct(${p.id})">
+      // IMPORTANT: p.id is a UUID — must be quoted in onclick or JS sees hyphens as subtraction
+      const sid = String(p.id);
+      const deleteBtnHtml = canDel ? `<button class="card-delete-btn" onclick="event.stopPropagation();adminDeleteProduct('${sid}',this)" title="Удалить"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>` : '';
+      return `<div class="product-card" style="animation-delay:${delay}s" onclick="openProduct('${sid}')">
         <div class="card-thumb" style="background:${thumbBg}">
           <div class="card-thumb-placeholder">${meta.emoji}</div>
           <div class="card-category-badge"><span class="tag tag-violet">${p.category||'Другое'}</span></div>
           <div class="card-actions">
-            <button class="card-wishlist" onclick="event.stopPropagation();toggleWishlist(${p.id},this)" title="Избранное"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+            <button class="card-wishlist" onclick="event.stopPropagation();toggleWishlist('${sid}',this)" title="Избранное"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
             ${deleteBtnHtml}
           </div>
         </div>
         <div class="card-body">
           <h3 class="card-title">${escapeHtml(p.title)}</h3>
           <div class="card-seller"><div class="seller-avatar">${initials}</div><span class="seller-name">${escapeHtml(p.seller_name||'Аноним')}</span><span class="seller-stars">${stars}</span></div>
-          <div class="card-footer"><div class="card-price"><span class="currency">₽</span>${Number(p.price).toLocaleString('ru')}</div><button class="card-buy-btn" onclick="event.stopPropagation();buyProduct(${p.id})">Купить</button></div>
+          <div class="card-footer"><div class="card-price"><span class="currency">₽</span>${Number(p.price).toLocaleString('ru')}</div><button class="card-buy-btn" onclick="event.stopPropagation();buyProduct('${sid}')">Купить</button></div>
         </div>
       </div>`;
     }).join('');
@@ -1621,22 +1630,41 @@
   async function createProduct() {
     const btn=document.getElementById('btnPublish'); btn.classList.add('loading'); btn.disabled=true;
     try {
-      const {data:{user},error:ae}=await sb.auth.getUser();
-      if(ae){ console.error('[createProduct] getUser error:', ae.message); closeSellModal(); showAuthModal('login'); return; }
-      if(!user){ closeSellModal(); showAuthModal('login'); return; }
-      const un=user.user_metadata?.username||user.email?.split('@')[0]||'Аноним';
-      const payload={title:SellForm.title,description:SellForm.desc||'',price:SellForm.price,category:SellForm.category,seller_name:un,user_id:user.id};
-      const {error}=await sb.from('products').insert([payload]);
-      if(error){ console.error('[createProduct] insert error:', error.message, error.details); throw error; }
-      showSellStep(4); showToast('🎉 Товар выставлен на продажу!','success');
-      setTimeout(()=>{closeSellModal();resetSellModal();},3000);
-    } catch(err){
+      const { data: { user }, error: ae } = await sb.auth.getUser();
+      if (ae) { console.error('[createProduct] getUser error:', ae.message); closeSellModal(); showAuthModal('login'); return; }
+      if (!user) { closeSellModal(); showAuthModal('login'); return; }
+
+      const un = user.user_metadata?.username || user.email?.split('@')[0] || 'Аноним';
+
+      const payload = {
+        title:       SellForm.title,
+        description: SellForm.desc || '',
+        price:       SellForm.price,
+        category:    SellForm.category,
+        seller_name: un,
+        seller_id:   user.id,   // ← column the table actually has
+        user_id:     user.id,   // ← keep both for compatibility
+      };
+
+      console.log('[createProduct] inserting:', payload);
+      const { data, error } = await sb.from('products').insert([payload]).select().single();
+      if (error) { console.error('[createProduct] insert error:', error.message, error.details, error.hint); throw error; }
+
+      // Prepend to local state so it appears instantly without waiting for realtime
+      if (data) { State.allProducts.unshift(data); applyFilters(); }
+
+      showSellStep(4);
+      showToast('🎉 Товар выставлен на продажу!', 'success');
+      setTimeout(() => { closeSellModal(); resetSellModal(); }, 3000);
+    } catch(err) {
       console.error('[createProduct] caught:', err);
-      const msg = err.message?.includes('row-level')
-        ? 'Нет прав на публикацию — проверь RLS в Supabase'
-        : (err.message?.includes('JWT') || err.message?.includes('token'))
-          ? 'Сессия истекла — войди снова'
-          : (err.message || 'Не удалось опубликовать товар');
+      const msg = err.message?.includes('row-level') || err.message?.includes('policy')
+        ? 'Нет прав на публикацию — добавь RLS policy INSERT для products'
+        : err.message?.includes('column')
+          ? 'Ошибка схемы: ' + err.message
+          : (err.message?.includes('JWT') || err.message?.includes('token'))
+            ? 'Сессия истекла — войди снова'
+            : (err.message || 'Не удалось опубликовать товар');
       showToast(msg, 'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
@@ -1874,13 +1902,30 @@
     input.classList.remove('error');
     const btn=document.getElementById('btnSaveProfile'); btn.classList.add('loading'); btn.disabled=true;
     try {
-      const{error}=await sb.auth.updateUser({data:{username:un}}); if(error)throw error;
-      if(State.user)State.user.user_metadata={...State.user.user_metadata,username:un};
-      renderNavAuth(State.user); showToast('✅ Никнейм обновлён!','success');
-      document.getElementById('profileUsername').textContent=un;
-    } catch {
-      if(State.user){if(!State.user.user_metadata)State.user.user_metadata={};State.user.user_metadata.username=un;renderNavAuth(State.user);}
-      showToast('✅ Никнейм обновлён (демо)!','success'); document.getElementById('profileUsername').textContent=un;
+      const { data: { user }, error: ue } = await sb.auth.getUser();
+      if (ue || !user) throw new Error('Не авторизован');
+
+      // 1. Update auth user_metadata (for navbar display)
+      const { error: authErr } = await sb.auth.updateUser({ data: { username: un } });
+      if (authErr) { console.error('[saveProfile] auth.updateUser:', authErr.message); throw authErr; }
+
+      // 2. Upsert into profiles table so seller_name and username stay in sync
+      const { error: dbErr } = await sb
+        .from('profiles')
+        .upsert({ id: user.id, username: un, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+      if (dbErr) {
+        // Non-fatal — profile table might not have username column yet
+        console.warn('[saveProfile] profiles upsert warning:', dbErr.message);
+      }
+
+      // Update local state
+      if (State.user) State.user.user_metadata = { ...State.user.user_metadata, username: un };
+      renderNavAuth(State.user);
+      showToast('✅ Никнейм обновлён!', 'success');
+      document.getElementById('profileUsername').textContent = un;
+    } catch (err) {
+      console.error('[saveProfile] error:', err.message);
+      showToast('Ошибка: ' + (err.message || 'не удалось сохранить'), 'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
 
@@ -1935,23 +1980,21 @@
   // =============================================
   document.getElementById('heroSellBtn').addEventListener('click', () => requireAuth(openSellModal));
 
-  // Global error safety net — catches uncaught JS errors and unhandled promise rejections
+  // Global error safety net
   window.addEventListener('unhandledrejection', event => {
     const msg = event.reason?.message || String(event.reason) || 'Неизвестная ошибка';
     console.error('[UnhandledRejection]', msg, event.reason);
-    // Only show toast for non-trivial errors (avoid spamming on Supabase realtime noise)
-    if (!msg.includes('AbortError') && !msg.includes('closed')) {
+    if (!msg.includes('AbortError') && !msg.includes('closed') && !msg.includes('channel')) {
       showToast('Ошибка: ' + msg.slice(0, 80), 'error');
     }
   });
   window.onerror = (message, source, lineno, colno, error) => {
     console.error('[window.onerror]', message, 'at', source, lineno, colno, error);
-    return false; // don't suppress default browser behaviour
+    return false;
   };
 
-  checkUser();
-  fetchProducts();
-  fetchStats();
+  // NOTE: fetchProducts() and fetchStats() are called inside onAuthStateChange
+  // on the INITIAL_SESSION event — this guarantees auth is restored first.
   </script>
 </body>
 </html>
