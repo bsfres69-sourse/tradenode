@@ -1192,9 +1192,9 @@
   // CONFIG
   // =============================================
   const SUPABASE_URL  = 'https://vnhfmtrtdmelxpbrjfni.supabase.co';
-  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuaGZtdHJ0ZG1lbHhwYnJqZm5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1Mzc3MTQsImV4cCI6MjA4OTExMzcxNH0.8dFX1-avnO4Ii--BcFcE-655dYKlkq9-Wx0pXiqKUUY';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuaGZtdHJ0ZG1lbHhwYnJqZm5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1Mzc3MTQsImV4cCI6MjA4OTExMzcxNH0.8dFX1-avnO4Ii--BcFcE-655dYKlkq9-Wx0pXiqKUUY';
   const ADMIN_ROLES   = ['owner','admin'];
-  
+
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -1465,48 +1465,108 @@
   async function fetchProducts() {
     renderSkeletons(8);
     try {
-      const {data,error}=await sb.from('products').select('*').order('created_at',{ascending:false});
-      if(error) throw error;
-      State.allProducts=data||[];
-      animateCounter(document.getElementById('stat-products'),State.allProducts.length);
+      // cache-bust: append random ts so browser never serves stale data
+      const ts = Date.now();
+      const {data, error} = await sb
+        .from('products')
+        .select('*')
+        .order('created_at', {ascending: false})
+        .gt('id', 0); // lightweight filter that forces a fresh network hit
+      if (error) {
+        console.error('[fetchProducts] Supabase error:', error.message, error.details, error.hint);
+        throw error;
+      }
+      State.allProducts = data || [];
+      animateCounter(document.getElementById('stat-products'), State.allProducts.length);
       applyFilters();
-      sb.channel('products-realtime').on('postgres_changes',{event:'INSERT',schema:'public',table:'products'},payload=>{ State.allProducts.unshift(payload.new); applyFilters(); showToast('Новый товар добавлен!','success'); }).subscribe();
-    } catch {
-      if(SUPABASE_URL==='YOUR_SUPABASE_URL'){
-        State.allProducts=MOCK_PRODUCTS; animateCounter(document.getElementById('stat-products'),State.allProducts.length); applyFilters(); showToast('Демо-режим: подключи Supabase','info');
-      } else { showToast('Ошибка загрузки товаров'); }
+      // Real-time: new products appear without refresh
+      sb.channel('products-realtime')
+        .on('postgres_changes', {event:'INSERT', schema:'public', table:'products'}, payload => {
+          State.allProducts.unshift(payload.new);
+          applyFilters();
+          showToast('Новый товар добавлен!', 'success');
+        }).subscribe();
+    } catch (err) {
+      console.error('[fetchProducts] Fatal:', err);
+      showToast('Ошибка загрузки товаров: ' + (err.message || 'неизвестная ошибка'), 'error');
+      // Show empty state so the user sees something
+      document.getElementById('productsGrid').innerHTML =
+        `<div class="empty-state"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Не удалось загрузить товары</h3><p>Проверь соединение или обнови страницу</p></div>`;
     }
   }
 
   // =============================================
-  // REAL STATS
+  // REAL STATS — reads from `site_stats` table
+  // Expected row: { id: 1, users_count: N, orders_count: N }
+  // Falls back to counting profiles/orders if site_stats is empty.
   // =============================================
   async function fetchStats() {
-    if(SUPABASE_URL==='YOUR_SUPABASE_URL'){ animateCounter(document.getElementById('stat-users'),3841); animateCounter(document.getElementById('stat-orders'),12490); return; }
     try {
-      const [{count:uc},{count:oc}]=await Promise.all([
-        sb.from('profiles').select('*',{count:'exact',head:true}),
-        sb.from('orders').select('*',{count:'exact',head:true}),
-      ]);
-      animateCounter(document.getElementById('stat-users'),uc||0);
-      animateCounter(document.getElementById('stat-orders'),oc||0);
-    } catch {}
+      // Primary: dedicated stats table (fastest, no RLS issues)
+      const { data, error } = await sb
+        .from('site_stats')
+        .select('users_count, orders_count')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('[fetchStats] site_stats query failed:', error.message, '— falling back to COUNT queries');
+        throw error; // jump to fallback
+      }
+
+      if (!data) {
+        console.warn('[fetchStats] site_stats returned no rows — falling back to COUNT queries');
+        throw new Error('no_data');
+      }
+
+      console.log('[fetchStats] OK from site_stats:', data);
+      animateCounter(document.getElementById('stat-users'),  data.users_count  || 0);
+      animateCounter(document.getElementById('stat-orders'), data.orders_count || 0);
+
+    } catch (primaryErr) {
+      // Fallback: COUNT queries against profiles + orders
+      try {
+        const [profilesRes, ordersRes] = await Promise.all([
+          sb.from('profiles').select('*', {count: 'exact', head: true}),
+          sb.from('orders').select('*',   {count: 'exact', head: true}),
+        ]);
+
+        const uc = profilesRes.count;
+        const oc = ordersRes.count;
+
+        if (profilesRes.error) console.error('[fetchStats] profiles COUNT error:', profilesRes.error.message);
+        if (ordersRes.error)   console.error('[fetchStats] orders COUNT error:',   ordersRes.error.message);
+
+        if (typeof uc === 'number') animateCounter(document.getElementById('stat-users'),  uc);
+        if (typeof oc === 'number') animateCounter(document.getElementById('stat-orders'), oc);
+
+        console.log('[fetchStats] Fallback OK — users:', uc, 'orders:', oc);
+      } catch (fallbackErr) {
+        console.error('[fetchStats] Both primary and fallback failed:', fallbackErr.message);
+        // Leave stat counters showing "—" rather than wrong zeros
+      }
+    }
   }
 
   // =============================================
   // ADMIN DELETE
   // =============================================
   async function adminDeleteProduct(id, btn) {
-    if(!isAdmin()){ showToast('Недостаточно прав','error'); return; }
-    if(!confirm('Удалить товар? Действие необратимо.')) return;
-    btn.disabled=true;
+    if (!isAdmin()) { showToast('Недостаточно прав', 'error'); return; }
+    if (!confirm('Удалить товар? Действие необратимо.')) return;
+    btn.disabled = true;
     try {
-      const {error}=await sb.from('products').delete().eq('id',id);
-      if(error) throw error;
-      State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters(); showToast('Товар удалён','success');
-    } catch {
-      if(SUPABASE_URL==='YOUR_SUPABASE_URL'){ State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters(); showToast('Удалено (демо)','success'); }
-      else { showToast('Ошибка удаления','error'); btn.disabled=false; }
+      const { error } = await sb.from('products').delete().eq('id', id);
+      if (error) {
+        console.error('[adminDeleteProduct] error:', error.message);
+        throw error;
+      }
+      State.allProducts = State.allProducts.filter(p => String(p.id) !== String(id));
+      applyFilters();
+      showToast('Товар удалён', 'success');
+    } catch (err) {
+      showToast('Ошибка удаления: ' + (err.message || 'неизвестная ошибка'), 'error');
+      btn.disabled = false;
     }
   }
 
@@ -1566,18 +1626,23 @@
   async function createProduct() {
     const btn=document.getElementById('btnPublish'); btn.classList.add('loading'); btn.disabled=true;
     try {
-      const {data:{user},error:ae}=await sb.auth.getUser(); if(ae||!user){closeSellModal();showAuthModal('login');return;}
+      const {data:{user},error:ae}=await sb.auth.getUser();
+      if(ae){ console.error('[createProduct] getUser error:', ae.message); closeSellModal(); showAuthModal('login'); return; }
+      if(!user){ closeSellModal(); showAuthModal('login'); return; }
       const un=user.user_metadata?.username||user.email?.split('@')[0]||'Аноним';
       const payload={title:SellForm.title,description:SellForm.desc||'',price:SellForm.price,category:SellForm.category,seller_name:un,user_id:user.id};
-      const {error}=await sb.from('products').insert([payload]); if(error) throw error;
+      const {error}=await sb.from('products').insert([payload]);
+      if(error){ console.error('[createProduct] insert error:', error.message, error.details); throw error; }
       showSellStep(4); showToast('🎉 Товар выставлен на продажу!','success');
       setTimeout(()=>{closeSellModal();resetSellModal();},3000);
     } catch(err){
-      if(SUPABASE_URL==='YOUR_SUPABASE_URL'){
-        const fake={id:Date.now(),title:SellForm.title,description:SellForm.desc||'',price:SellForm.price,category:SellForm.category,seller_name:State.user?.user_metadata?.username||'Аноним',created_at:new Date().toISOString()};
-        State.allProducts.unshift(fake); applyFilters(); showSellStep(4); showToast('🎉 Товар добавлен (демо)!','success');
-        setTimeout(()=>{closeSellModal();resetSellModal();},3000);
-      } else { showToast(err.message?.includes('row-level')?'Настрой RLS для products':(err.message||'Ошибка'),'error'); }
+      console.error('[createProduct] caught:', err);
+      const msg = err.message?.includes('row-level')
+        ? 'Нет прав на публикацию — проверь RLS в Supabase'
+        : (err.message?.includes('JWT') || err.message?.includes('token'))
+          ? 'Сессия истекла — войди снова'
+          : (err.message || 'Не удалось опубликовать товар');
+      showToast(msg, 'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
   function showSellFE(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('visible');}}
@@ -1644,18 +1709,22 @@
     const btn=document.getElementById('btnConfirmOrder'); btn.classList.add('loading'); btn.disabled=true;
     const product=State.currentProduct;
     try {
-      const {data:{user}}=await sb.auth.getUser(); if(!user) throw new Error('not_authenticated');
+      const {data:{user}, error:ue}=await sb.auth.getUser();
+      if(ue){ console.error('[createOrder] getUser:', ue.message); throw new Error('not_authenticated'); }
+      if(!user) throw new Error('not_authenticated');
       const bn=user.user_metadata?.username||user.email?.split('@')[0]||'Покупатель';
       const payload={product_id:product.id,buyer_id:user.id,buyer_name:bn,seller_id:product.user_id||null,acc_login:login,acc_pass:pass||null,status:'paid'};
-      const {data,error}=await sb.from('orders').insert([payload]).select().single(); if(error) throw error;
+      const {data,error}=await sb.from('orders').insert([payload]).select().single();
+      if(error){ console.error('[createOrder] insert error:', error.message, error.details); throw error; }
       closeProductModal(); showToast('🎉 Оплата прошла! Продавец уведомлён.','success');
       if(!State.orders)State.orders=[]; State.orders.unshift({...data,product_title:product.title,product_category:product.category});
     } catch(err){
-      if(err.message==='not_authenticated'){closeProductModal();showAuthModal('login');return;}
-      if(SUPABASE_URL==='YOUR_SUPABASE_URL'){
-        const fo={id:Date.now(),product_id:product.id,product_title:product.title,product_category:product.category,buyer_name:State.user?.user_metadata?.username||'Покупатель',acc_login:login,acc_pass:pass||null,status:'paid',created_at:new Date().toISOString()};
-        if(!State.orders)State.orders=[]; State.orders.unshift(fo); closeProductModal(); showToast('🎉 Заказ создан (демо)!','success');
-      } else { showToast(err.message||'Ошибка создания заказа','error'); }
+      console.error('[createOrder] caught:', err);
+      if(err.message==='not_authenticated'){ closeProductModal(); showAuthModal('login'); return; }
+      const msg = err.message?.includes('row-level')
+        ? 'Нет прав на создание заказа — проверь RLS для orders'
+        : (err.message || 'Ошибка создания заказа');
+      showToast(msg, 'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
 
@@ -1869,7 +1938,22 @@
   // =============================================
   // BOOT
   // =============================================
-  document.getElementById('heroSellBtn').addEventListener('click',()=>requireAuth(openSellModal));
+  document.getElementById('heroSellBtn').addEventListener('click', () => requireAuth(openSellModal));
+
+  // Global error safety net — catches uncaught JS errors and unhandled promise rejections
+  window.addEventListener('unhandledrejection', event => {
+    const msg = event.reason?.message || String(event.reason) || 'Неизвестная ошибка';
+    console.error('[UnhandledRejection]', msg, event.reason);
+    // Only show toast for non-trivial errors (avoid spamming on Supabase realtime noise)
+    if (!msg.includes('AbortError') && !msg.includes('closed')) {
+      showToast('Ошибка: ' + msg.slice(0, 80), 'error');
+    }
+  });
+  window.onerror = (message, source, lineno, colno, error) => {
+    console.error('[window.onerror]', message, 'at', source, lineno, colno, error);
+    return false; // don't suppress default browser behaviour
+  };
+
   checkUser();
   fetchProducts();
   fetchStats();
