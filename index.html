@@ -1465,13 +1465,10 @@
   async function fetchProducts() {
     renderSkeletons(8);
     try {
-      // cache-bust: append random ts so browser never serves stale data
-      const ts = Date.now();
       const {data, error} = await sb
         .from('products')
         .select('*')
-        .order('created_at', {ascending: false})
-        .gt('id', 0); // lightweight filter that forces a fresh network hit
+        .order('created_at', {ascending: false});
       if (error) {
         console.error('[fetchProducts] Supabase error:', error.message, error.details, error.hint);
         throw error;
@@ -1479,7 +1476,6 @@
       State.allProducts = data || [];
       animateCounter(document.getElementById('stat-products'), State.allProducts.length);
       applyFilters();
-      // Real-time: new products appear without refresh
       sb.channel('products-realtime')
         .on('postgres_changes', {event:'INSERT', schema:'public', table:'products'}, payload => {
           State.allProducts.unshift(payload.new);
@@ -1489,7 +1485,6 @@
     } catch (err) {
       console.error('[fetchProducts] Fatal:', err);
       showToast('Ошибка загрузки товаров: ' + (err.message || 'неизвестная ошибка'), 'error');
-      // Show empty state so the user sees something
       document.getElementById('productsGrid').innerHTML =
         `<div class="empty-state"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Не удалось загрузить товары</h3><p>Проверь соединение или обнови страницу</p></div>`;
     }
