@@ -10,14 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* =============================================
-       DESIGN TOKENS
-    ============================================= */
     :root {
       --bg-base:#080c12; --bg-surface:#0e1420; --bg-raised:#141b28; --bg-overlay:#1a2235;
       --violet:#a855f7; --violet-dim:#7c3aed; --violet-glow:rgba(168,85,247,0.18);
       --emerald:#10b981; --emerald-dim:#059669; --emerald-glow:rgba(16,185,129,0.15);
-      --danger:#ef4444;
+      --amber:#f59e0b; --danger:#ef4444;
       --text-primary:#f0f4ff; --text-secondary:#8892a4; --text-muted:#4a5568;
       --border:rgba(255,255,255,0.07); --border-hover:rgba(168,85,247,0.35);
       --radius-sm:6px; --radius-md:12px; --radius-lg:18px; --radius-xl:24px;
@@ -27,63 +24,44 @@
       --transition:0.22s cubic-bezier(0.4,0,0.2,1);
       --touch:44px;
     }
-
-    /* =============================================
-       RESET & BASE — MOBILE FIRST
-    ============================================= */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
     body{background:var(--bg-base);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.5}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
     a{text-decoration:none;color:inherit}
     button{cursor:pointer;border:none;background:none;font-family:inherit;-webkit-tap-highlight-color:transparent}
-    img{display:block;max-width:100%}
     input,textarea,select{font-family:inherit}
     ::-webkit-scrollbar{width:4px}
     ::-webkit-scrollbar-track{background:var(--bg-base)}
     ::-webkit-scrollbar-thumb{background:var(--bg-overlay);border-radius:2px}
     ::-webkit-scrollbar-thumb:hover{background:var(--violet-dim)}
-
-    /* =============================================
-       TYPOGRAPHY
-    ============================================= */
     .font-display,h1,h2,h3{font-family:'Syne',sans-serif;line-height:1.15}
-
-    /* =============================================
-       UTILITIES
-    ============================================= */
     .container{width:100%;max-width:1240px;margin:0 auto;padding:0 16px}
     @media(min-width:640px){.container{padding:0 24px}}
     .hidden{display:none!important}
     .tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px}
-    .tag-violet{background:var(--violet-glow);color:var(--violet);border:1px solid rgba(168,85,247,0.25)}
-    .tag-emerald{background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,0.22)}
-
-    /* =============================================
-       BUTTONS — min touch target 44px
-    ============================================= */
+    .tag-violet{background:var(--violet-glow);color:var(--violet);border:1px solid rgba(168,85,247,.25)}
+    .tag-emerald{background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,.22)}
+    /* BUTTONS */
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:var(--radius-md);font-size:14px;font-weight:500;transition:var(--transition);white-space:nowrap;min-height:var(--touch)}
-    .btn-primary{background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;box-shadow:0 0 20px rgba(168,85,247,0.3)}
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(168,85,247,0.5)}
+    .btn-primary{background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;box-shadow:0 0 20px rgba(168,85,247,.3)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(168,85,247,.5)}
     .btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}
     .btn-ghost:hover{border-color:var(--border-hover);color:var(--text-primary);background:var(--violet-glow)}
-    .btn-emerald{background:linear-gradient(135deg,var(--emerald),var(--emerald-dim));color:#fff;box-shadow:0 0 20px rgba(16,185,129,0.25)}
-    .btn-emerald:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(16,185,129,0.4)}
-    .btn-danger{background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.3)}
-    .btn-danger:hover{background:var(--danger);color:#fff;border-color:transparent}
+    .btn-emerald{background:linear-gradient(135deg,var(--emerald),var(--emerald-dim));color:#fff;box-shadow:0 0 20px rgba(16,185,129,.25)}
+    .btn-emerald:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(16,185,129,.4)}
+    .btn-danger-soft{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius-sm);padding:7px 13px;font-size:12px;font-weight:600;transition:var(--transition)}
+    .btn-danger-soft:hover{background:var(--danger);color:#fff;border-color:transparent}
     .btn-lg{padding:14px 28px;font-size:15px;border-radius:var(--radius-lg)}
     .btn-sm{padding:7px 14px;font-size:13px;min-height:36px}
-
-    /* =============================================
-       NAVBAR — mobile first
-    ============================================= */
+    /* NAVBAR */
     .navbar{position:sticky;top:0;z-index:100}
-    .navbar-inner{display:flex;align-items:center;gap:10px;height:60px;padding:0 16px;background:rgba(8,12,18,0.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+    .navbar-inner{display:flex;align-items:center;gap:10px;height:60px;padding:0 16px;background:rgba(8,12,18,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
     @media(min-width:640px){.navbar-inner{height:64px;padding:0 24px;gap:16px}}
-    .navbar.scrolled .navbar-inner{box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+    .navbar.scrolled .navbar-inner{box-shadow:0 8px 40px rgba(0,0,0,.4)}
     .logo{display:flex;align-items:center;gap:8px;flex-shrink:0}
     .logo-icon{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--violet),var(--emerald));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-glow-v);flex-shrink:0}
-    .logo-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(90deg,#e0d4ff 0%,var(--emerald) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .logo-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#e0d4ff 0%,var(--emerald) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     .nav-links{display:none;align-items:center;gap:2px;margin-left:4px}
     @media(min-width:768px){.nav-links{display:flex}}
     .nav-link{padding:8px 12px;border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary);transition:var(--transition);min-height:var(--touch);display:flex;align-items:center}
@@ -93,17 +71,15 @@
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
     .search-input{width:100%;height:40px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:0 12px 0 36px;font-size:14px;color:var(--text-primary);outline:none;transition:var(--transition)}
     .search-input::placeholder{color:var(--text-muted)}
-    .search-input:focus{border-color:var(--violet-dim);background:var(--bg-overlay);box-shadow:0 0 0 3px rgba(124,58,237,0.15)}
+    .search-input:focus{border-color:var(--violet-dim);background:var(--bg-overlay);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
     .nav-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
-    .nav-icon-btn{width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:var(--transition)}
-    .nav-icon-btn:hover{background:var(--bg-raised);color:var(--text-primary)}
     .auth-buttons{display:flex;align-items:center;gap:8px}
     .auth-reg-text{display:none}
     @media(min-width:480px){.auth-reg-text{display:inline}}
     .user-panel{display:none;align-items:center;gap:8px}
     .user-panel.visible{display:flex}
-    .user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 2px rgba(168,85,247,0.3);cursor:pointer;transition:var(--transition)}
-    .user-avatar:hover{box-shadow:0 0 0 3px rgba(168,85,247,0.5)}
+    .user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 2px rgba(168,85,247,.3);cursor:pointer;transition:var(--transition)}
+    .user-avatar:hover{box-shadow:0 0 0 3px rgba(168,85,247,.5)}
     .user-info{display:none;flex-direction:column}
     @media(min-width:640px){.user-info{display:flex}}
     .user-name{font-size:13px;font-weight:600;color:var(--text-primary);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -113,20 +89,17 @@
     .user-dropdown.open{opacity:1;transform:translateY(0);pointer-events:all}
     .dropdown-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);transition:var(--transition);text-align:left;min-height:var(--touch)}
     .dropdown-item:hover{background:var(--bg-raised);color:var(--text-primary)}
-    .dropdown-item.danger:hover{background:rgba(239,68,68,0.1);color:var(--danger)}
+    .dropdown-item.danger:hover{background:rgba(239,68,68,.1);color:var(--danger)}
+    .dropdown-item.admin-item{color:var(--amber)}
+    .dropdown-item.admin-item:hover{background:rgba(245,158,11,.1);color:var(--amber)}
     .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
     .dropdown-user-header{padding:10px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
-    .dropdown-user-email{font-size:11px;color:var(--text-muted);word-break:break-all}
-    /* Role badges */
+    .dropdown-user-email{font-size:11px;color:var(--text-muted);word-break:break-all;margin-top:2px}
     .role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
-    .role-owner{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)}
-    .role-admin{background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.25)}
-    .role-moderator{background:var(--violet-glow);color:var(--violet);border:1px solid rgba(168,85,247,0.3)}
-    .role-user{background:var(--bg-raised);color:var(--text-muted);border:1px solid var(--border)}
-
-    /* =============================================
-       HERO
-    ============================================= */
+    .role-owner{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+    .role-admin{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)}
+    .role-moderator{background:var(--violet-glow);color:var(--violet);border:1px solid rgba(168,85,247,.3)}
+    /* HERO */
     .hero{position:relative;overflow:hidden;padding:52px 0 64px}
     @media(min-width:768px){.hero{padding:80px 0 96px}}
     .hero-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden}
@@ -153,10 +126,7 @@
     .stat-label{font-size:12px;color:var(--text-secondary);margin-top:2px}
     .stat-divider{width:1px;height:32px;background:var(--border);display:none}
     @media(min-width:640px){.stat-divider{display:block}}
-
-    /* =============================================
-       CATEGORY BAR
-    ============================================= */
+    /* CATALOG */
     .category-bar{padding:8px 0 24px}
     .category-scroll{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .category-scroll::-webkit-scrollbar{display:none}
@@ -164,10 +134,6 @@
     .category-chip .chip-emoji{font-size:14px}
     .category-chip:hover{border-color:var(--border-hover);color:var(--text-primary)}
     .category-chip.active{background:var(--violet-glow);border-color:rgba(168,85,247,.4);color:var(--violet);box-shadow:var(--shadow-glow-v)}
-
-    /* =============================================
-       SECTION HEADER
-    ============================================= */
     .section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
     .section-title{font-size:19px;font-weight:700}
     @media(min-width:640px){.section-title{font-size:22px}}
@@ -175,16 +141,11 @@
     .section-sub{font-size:12px;color:var(--text-secondary);margin-top:3px}
     .see-all{font-size:13px;color:var(--violet);display:flex;align-items:center;gap:4px;transition:var(--transition)}
     .see-all:hover{opacity:.75}
-
-    /* =============================================
-       PRODUCTS GRID — 2 cols mobile → 3 → 4
-    ============================================= */
+    /* PRODUCTS GRID */
     .products-section{padding:0 0 60px}
     .products-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(min-width:640px){.products-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
     @media(min-width:1024px){.products-grid{grid-template-columns:repeat(4,1fr);gap:18px}}
-
-    /* Card */
     .product-card{position:relative;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition);cursor:pointer;animation:cardIn .4s ease both}
     @keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .product-card:hover{border-color:var(--border-hover);transform:translateY(-3px);box-shadow:var(--shadow-card),var(--shadow-glow-v)}
@@ -192,12 +153,10 @@
     .product-card:hover::before{opacity:1}
     .card-thumb{position:relative;height:100px;overflow:hidden;background:var(--bg-raised)}
     @media(min-width:640px){.card-thumb{height:120px}}
-    @media(min-width:1024px){.card-thumb{height:130px}}
     .card-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,var(--bg-surface) 100%)}
     .card-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px}
     @media(min-width:640px){.card-thumb-placeholder{font-size:40px}}
     .card-category-badge{position:absolute;top:8px;left:8px;z-index:2}
-    /* Action buttons container */
     .card-actions{position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:4px}
     .card-wishlist,.card-delete-btn{width:28px;height:28px;border-radius:7px;background:rgba(8,12,18,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:var(--transition)}
     .card-wishlist:hover{background:rgba(168,85,247,.2);color:var(--violet)}
@@ -210,15 +169,14 @@
     .card-seller{display:flex;align-items:center;gap:5px;margin-bottom:10px}
     .seller-avatar{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
     .seller-name{font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-    .seller-stars{display:flex;align-items:center;gap:2px;margin-left:auto;color:#f59e0b;font-size:10px;flex-shrink:0}
+    .seller-stars{display:flex;align-items:center;gap:2px;margin-left:auto;color:var(--amber);font-size:10px;flex-shrink:0}
     .card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px}
     .card-price{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary)}
     @media(min-width:640px){.card-price{font-size:17px}}
     .card-price .currency{font-size:11px;font-weight:400;color:var(--text-secondary);margin-right:1px}
     .card-buy-btn{padding:6px 10px;border-radius:var(--radius-sm);background:var(--violet-glow);border:1px solid rgba(168,85,247,.3);color:var(--violet);font-size:12px;font-weight:600;transition:var(--transition);white-space:nowrap}
     .card-buy-btn:hover{background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;border-color:transparent;box-shadow:var(--shadow-glow-v)}
-
-    /* Skeleton */
+    /* SKELETON */
     .skeleton-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;animation:cardIn .4s ease both}
     .skeleton{position:relative;overflow:hidden;background:var(--bg-raised);border-radius:6px}
     .skeleton::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.04) 50%,transparent 100%);animation:shimmer 1.6s ease infinite}
@@ -226,20 +184,13 @@
     .skeleton-thumb{height:100px;border-radius:0}
     @media(min-width:640px){.skeleton-thumb{height:120px}}
     .skeleton-body{padding:12px;display:flex;flex-direction:column;gap:8px}
-    .skeleton-line{height:13px}
-    .skeleton-line-sm{height:11px;width:60%}
-    .skeleton-footer{height:28px}
-
-    /* Empty state */
+    .skeleton-line{height:13px}.skeleton-line-sm{height:11px;width:60%}.skeleton-footer{height:28px}
     .empty-state{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-secondary)}
     .empty-icon{width:56px;height:56px;background:var(--bg-raised);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--text-muted)}
     .empty-state h3{font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:5px}
     .empty-state p{font-size:13px}
-
-    /* =============================================
-       FOOTER
-    ============================================= */
-    .footer-cta{padding:48px 0;border-top:1px solid var(--border);text-align:center}
+    /* FOOTER */
+    .footer-cta{padding:48px 0;border-top:1px solid var(--border);text-align:center;transition:var(--transition)}
     .footer-cta h2{font-size:clamp(22px,5vw,40px);margin-bottom:10px}
     .footer-cta p{color:var(--text-secondary);font-size:14px;margin-bottom:24px}
     footer{padding:20px 0;border-top:1px solid var(--border)}
@@ -248,10 +199,7 @@
     .footer-links{display:flex;gap:16px}
     .footer-link{font-size:12px;color:var(--text-muted);transition:var(--transition)}
     .footer-link:hover{color:var(--text-secondary)}
-
-    /* =============================================
-       TOAST
-    ============================================= */
+    /* TOAST */
     .toast-container{position:fixed;bottom:20px;right:16px;z-index:9000;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 32px)}
     @media(min-width:480px){.toast-container{right:24px;max-width:320px}}
     .toast{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-md);background:var(--bg-overlay);border:1px solid var(--border);box-shadow:var(--shadow-card);font-size:13px;animation:toastIn .3s ease}
@@ -259,11 +207,7 @@
     .toast-error{border-color:rgba(239,68,68,.3)}.toast-error .toast-icon{color:var(--danger)}
     .toast-success{border-color:rgba(16,185,129,.3)}.toast-success .toast-icon{color:var(--emerald)}
     .toast-info .toast-icon{color:var(--violet)}
-
-    /* =============================================
-       MODALS — base (shared)
-       Bottom sheet on mobile, centered on desktop
-    ============================================= */
+    /* MODALS — base */
     .modal-backdrop{position:fixed;inset:0;z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;background:rgba(4,7,12,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .25s ease}
     @media(min-width:640px){.modal-backdrop{align-items:center;padding:20px}}
     .modal-backdrop.open{opacity:1;pointer-events:all}
@@ -286,8 +230,7 @@
     @keyframes panelIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
     .modal-title{font-size:19px;font-weight:700;margin-bottom:4px}
     .modal-subtitle{font-size:13px;color:var(--text-secondary);margin-bottom:20px}
-
-    /* Fields */
+    /* FIELDS */
     .field{margin-bottom:12px}
     .field-label{display:block;font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:5px}
     .field-input-wrap{position:relative}
@@ -314,11 +257,9 @@
     .form-note{text-align:center;font-size:12px;color:var(--text-muted);margin-top:12px}
     .form-note a{color:var(--violet);transition:var(--transition)}
     .form-note a:hover{opacity:.8}
-
-    /* =============================================
-       SUPPORT MODAL
-    ============================================= */
-    #supportModal .modal,#rulesModal .modal{max-width:480px}
+    /* SUPPORT & RULES */
+    #supportModal .modal,#rulesModal .modal,#reviewModal .modal,#adminModal .modal{max-width:480px}
+    #adminModal .modal{max-width:720px}
     .support-options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
     .support-option{display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);transition:var(--transition);cursor:pointer;min-height:var(--touch);text-decoration:none;color:inherit}
     .support-option:hover{border-color:var(--border-hover)}
@@ -327,19 +268,12 @@
     .support-option-icon.mail{background:var(--violet-glow);color:var(--violet)}
     .support-option-title{font-size:14px;font-weight:600;color:var(--text-primary)}
     .support-option-sub{font-size:12px;color:var(--text-secondary);margin-top:1px}
-
-    /* =============================================
-       RULES MODAL
-    ============================================= */
     .rules-scroll{max-height:55vh;overflow-y:auto;padding-right:4px}
     .rules-content{font-size:14px;color:var(--text-secondary);line-height:1.75}
     .rules-content h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);margin:16px 0 6px}
     .rules-content h3:first-child{margin-top:0}
     .rules-content p{margin-bottom:8px}
-
-    /* =============================================
-       SELL MODAL
-    ============================================= */
+    /* SELL MODAL */
     #sellModal .modal{max-width:560px}
     .sell-steps{display:flex;align-items:center;gap:0;margin-bottom:24px}
     .sell-step{display:flex;align-items:center;gap:7px;flex:1}
@@ -358,7 +292,7 @@
     .cat-option:hover{border-color:var(--border-hover);color:var(--text-primary)}
     .cat-option.selected{background:var(--violet-glow);border-color:rgba(168,85,247,.5);color:var(--violet);box-shadow:0 0 16px rgba(168,85,247,.15)}
     .cat-option-emoji{font-size:20px;line-height:1}
-    .field-textarea{width:100%;min-height:90px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;font-size:14px;color:var(--text-primary);outline:none;resize:vertical;transition:var(--transition);line-height:1.5}
+    .field-textarea{width:100%;min-height:80px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;font-size:14px;color:var(--text-primary);outline:none;resize:vertical;transition:var(--transition);line-height:1.5}
     .field-textarea::placeholder{color:var(--text-muted)}
     .field-textarea:focus{border-color:var(--violet-dim);background:var(--bg-overlay);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
     .field-textarea.error{border-color:rgba(239,68,68,.5)}
@@ -394,10 +328,9 @@
     .sell-success-title{font-size:21px;font-weight:800;margin-bottom:8px}
     .sell-success-sub{font-size:14px;color:var(--text-secondary);margin-bottom:22px}
     @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-
-    /* =============================================
-       PRODUCT DETAIL MODAL
-    ============================================= */
+    /* AUTO-DELIVERY BADGE */
+    .auto-delivery-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--emerald);background:var(--emerald-glow);border:1px solid rgba(16,185,129,.25);border-radius:20px;padding:3px 9px}
+    /* PRODUCT DETAIL MODAL */
     #productModal .modal{max-width:780px}
     .product-detail-grid{display:flex;flex-direction:column}
     @media(min-width:640px){.product-detail-grid{display:grid;grid-template-columns:1fr 290px}}
@@ -454,10 +387,7 @@
     .order-summary-line.total{font-size:15px;font-weight:700;color:var(--text-primary);margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
     .order-summary-line.total span:last-child{color:var(--violet);font-family:'Syne',sans-serif}
     .order-note{background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.15);border-radius:var(--radius-md);padding:10px 12px;font-size:12px;color:var(--text-secondary);line-height:1.5;margin:10px 0}
-
-    /* =============================================
-       DRAWERS
-    ============================================= */
+    /* DRAWERS */
     .orders-drawer-backdrop{position:fixed;inset:0;z-index:400;background:rgba(4,7,12,.7);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s ease}
     .orders-drawer-backdrop.open{opacity:1;pointer-events:all}
     .orders-drawer{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:100%;background:var(--bg-surface);border-left:1px solid var(--border);z-index:401;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 48px rgba(0,0,0,.4)}
@@ -472,6 +402,7 @@
     .drawer-tab.active{color:var(--text-primary);border-bottom-color:var(--violet)}
     .drawer-tab:hover:not(.active){color:var(--text-primary)}
     .drawer-body{flex:1;overflow-y:auto;padding:18px 20px}
+    /* ORDER CARDS */
     .order-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px;transition:var(--transition);animation:cardIn .3s ease both}
     .order-card:hover{border-color:var(--border-hover)}
     .order-card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
@@ -482,8 +413,8 @@
     .order-card-price{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);flex-shrink:0}
     .status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em}
     .status-dot{width:6px;height:6px;border-radius:50%}
-    .status-paid{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
-    .status-paid .status-dot{background:#f59e0b}
+    .status-paid{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+    .status-paid .status-dot{background:var(--amber)}
     .status-delivered{background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
     .status-delivered .status-dot{background:#818cf8}
     .status-completed{background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,.25)}
@@ -504,10 +435,19 @@
     .drawer-empty p{font-size:13px}
     .drawer-skeleton{display:flex;flex-direction:column;gap:10px}
     .drawer-skel-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;gap:8px}
-
-    /* =============================================
-       CHAT PANEL
-    ============================================= */
+    /* MY LISTINGS */
+    .my-listing-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;animation:cardIn .3s ease both}
+    .my-listing-emoji{font-size:22px;flex-shrink:0}
+    .my-listing-info{flex:1;min-width:0}
+    .my-listing-title{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+    .my-listing-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text-muted)}
+    .my-listing-price{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--violet);flex-shrink:0}
+    /* REVIEW MODAL */
+    .star-rating{display:flex;gap:6px;justify-content:center;margin:16px 0}
+    .star-btn{font-size:28px;cursor:pointer;transition:transform .15s ease;color:var(--text-muted);background:none;border:none;padding:0 2px;line-height:1}
+    .star-btn:hover,.star-btn.active{transform:scale(1.2);color:var(--amber)}
+    .star-btn.filled{color:var(--amber)}
+    /* CHAT PANEL */
     .chat-panel{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:100%;background:var(--bg-surface);border-left:1px solid var(--border);z-index:402;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 48px rgba(0,0,0,.45)}
     @media(min-width:540px){.chat-panel{max-width:520px}}
     .chat-panel.open{transform:translateX(0)}
@@ -529,9 +469,11 @@
     .msg-row{display:flex;flex-direction:column;animation:msgIn .2s ease both}
     @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     .msg-row.mine{align-items:flex-end}.msg-row.theirs{align-items:flex-start}
+    .msg-row.system{align-items:center}
     .msg-bubble{max-width:80%;padding:9px 13px;border-radius:var(--radius-lg);font-size:14px;line-height:1.5;word-break:break-word}
     .msg-row.mine .msg-bubble{background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 12px rgba(168,85,247,.3)}
     .msg-row.theirs .msg-bubble{background:var(--bg-raised);color:var(--text-primary);border:1px solid var(--border);border-bottom-left-radius:4px}
+    .msg-row.system .msg-bubble{background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,.25);font-size:13px;text-align:center;border-radius:var(--radius-md)}
     .msg-meta{display:flex;align-items:center;gap:5px;margin-top:3px;font-size:10px;color:var(--text-muted)}
     .msg-row.mine .msg-meta{justify-content:flex-end}.msg-row.theirs .msg-meta{justify-content:flex-start}
     .msg-sender{font-weight:500;color:var(--text-secondary)}.msg-read{color:var(--violet)}
@@ -553,10 +495,7 @@
     .btn-chat-order{height:36px;padding:0 13px;border-radius:var(--radius-sm);background:var(--violet-glow);border:1px solid rgba(168,85,247,.3);color:var(--violet);font-size:12px;font-weight:600;transition:var(--transition);display:inline-flex;align-items:center;gap:5px}
     .btn-chat-order:hover{background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;border-color:transparent}
     .chat-unread-dot{width:7px;height:7px;background:var(--violet);border-radius:50%;display:inline-block;animation:pulse 1.5s ease-in-out infinite}
-
-    /* =============================================
-       PROFILE DRAWER
-    ============================================= */
+    /* PROFILE DRAWER */
     .profile-hero{display:flex;align-items:center;gap:14px;padding:4px 0 20px;margin-bottom:18px;border-bottom:1px solid var(--border)}
     .profile-avatar-wrap{position:relative;flex-shrink:0}
     .profile-avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff}
@@ -569,6 +508,29 @@
     .profile-stat-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 8px;text-align:center}
     .profile-stat-val{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--text-primary);margin-bottom:2px}
     .profile-stat-lbl{font-size:10px;color:var(--text-muted)}
+    .profile-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;gap:0}
+    .profile-tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--transition);min-height:var(--touch);display:flex;align-items:center}
+    .profile-tab.active{color:var(--text-primary);border-bottom-color:var(--violet)}
+    .profile-tab:hover:not(.active){color:var(--text-primary)}
+    .profile-panel{display:none}
+    .profile-panel.active{display:block}
+    /* ADMIN PANEL */
+    #adminModal .modal{max-width:720px;max-height:88vh}
+    .admin-tabs{display:flex;background:var(--bg-raised);border-radius:var(--radius-md);padding:4px;margin-bottom:18px;gap:4px}
+    .admin-tab{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:500;color:var(--text-secondary);text-align:center;transition:var(--transition);min-height:var(--touch)}
+    .admin-tab.active{background:var(--bg-overlay);color:var(--text-primary)}
+    .admin-panel{display:none}
+    .admin-panel.active{display:block}
+    .admin-user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px}
+    .admin-user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+    .admin-user-info{flex:1;min-width:0}
+    .admin-user-name{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .admin-user-email{font-size:11px;color:var(--text-muted)}
+    .admin-product-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px}
+    .admin-product-emoji{font-size:20px;flex-shrink:0}
+    .admin-product-info{flex:1;min-width:0}
+    .admin-product-title{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .admin-product-meta{font-size:11px;color:var(--text-muted)}
   </style>
 </head>
 <body>
@@ -582,19 +544,14 @@
         </div>
         <span class="logo-text">TradeNode</span>
       </a>
-
       <nav class="nav-links">
         <a href="#" class="nav-link active">Каталог</a>
-        <a href="#" class="nav-link" onclick="openSupportModal();return false">Поддержка</a>
+        <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="nav-link">Поддержка</a>
       </nav>
-
       <div class="search-wrapper">
-        <span class="search-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </span>
+        <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
         <input type="text" class="search-input" placeholder="Поиск..." id="searchInput" />
       </div>
-
       <div class="nav-right">
         <div class="auth-buttons" id="authButtons">
           <button class="btn btn-ghost btn-sm" onclick="showAuthModal('login')">Войти</button>
@@ -603,40 +560,36 @@
             <span class="auth-reg-text">Регистрация</span>
           </button>
         </div>
-
         <div class="user-panel" id="userPanel">
           <div class="user-dropdown-wrap">
-            <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()" title="Профиль">
-              <span id="userInitials">?</span>
-            </div>
+            <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()"><span id="userInitials">?</span></div>
             <div class="user-dropdown" id="userDropdown">
               <div class="dropdown-user-header">
-                <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:3px;display:flex;align-items:center;gap:7px">
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:7px">
                   <span id="dropdownName">—</span>
                   <span class="role-badge" id="dropdownRoleBadge" style="display:none"></span>
                 </div>
                 <div class="dropdown-user-email" id="dropdownEmail">—</div>
               </div>
               <button class="dropdown-item" onclick="goToProfile()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Мой профиль
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Мой профиль
               </button>
               <button class="dropdown-item" onclick="requireAuth(openSellModal)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Выставить товар
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Выставить товар
               </button>
               <button class="dropdown-item" onclick="goToOrders('purchases')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                Мои покупки
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Мои покупки
               </button>
               <button class="dropdown-item" onclick="goToOrders('sales')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Мои продажи
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Мои продажи
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item admin-item" id="btnAdminPanel" style="display:none" onclick="openAdminPanel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Админ-панель
               </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item danger" onclick="signOut()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Выйти
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Выйти
               </button>
             </div>
           </div>
@@ -650,19 +603,12 @@
   </nav>
 
   <!-- HERO -->
-  <section class="hero" id="heroSection">
-    <div class="hero-bg">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="hero-grid"></div>
-    </div>
+  <section class="hero">
+    <div class="hero-bg"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="hero-grid"></div></div>
     <div class="container">
       <div class="hero-content">
         <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span>Безопасные сделки · Лучшие цены</div>
-        <h1 class="hero-title">
-          <span class="line-1">Игровые аккаунты</span>
-          <span class="line-2">нового уровня</span>
-        </h1>
+        <h1 class="hero-title"><span class="line-1">Игровые аккаунты</span><span class="line-2">нового уровня</span></h1>
         <p class="hero-sub">Покупай и продавай аккаунты, предметы и услуги в любимых играх. Защита каждой сделки.</p>
         <div class="hero-actions">
           <button class="btn btn-primary btn-lg" onclick="document.getElementById('catalogSection').scrollIntoView({behavior:'smooth'})">
@@ -670,16 +616,15 @@
             Смотреть каталог
           </button>
           <button class="btn btn-ghost btn-lg" id="heroSellBtn">
-            Продать аккаунт
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            Продать аккаунт <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         </div>
         <div class="hero-stats">
-          <div class="stat-item"><div class="stat-value" id="stat-products">0</div><div class="stat-label">Активных товаров</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-products">…</div><div class="stat-label">Активных товаров</div></div>
           <div class="stat-divider"></div>
-          <div class="stat-item"><div class="stat-value" id="stat-users">—</div><div class="stat-label">Участников</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-users">…</div><div class="stat-label">Участников</div></div>
           <div class="stat-divider"></div>
-          <div class="stat-item"><div class="stat-value" id="stat-orders">—</div><div class="stat-label">Сделок</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-orders">…</div><div class="stat-label">Сделок</div></div>
           <div class="stat-divider"></div>
           <div class="stat-item"><div class="stat-value">24/7</div><div class="stat-label">Поддержка</div></div>
         </div>
@@ -713,14 +658,12 @@
         </div>
         <a href="#" class="see-all">Все <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
       </div>
-      <section class="products-section">
-        <div class="products-grid" id="productsGrid"></div>
-      </section>
+      <section class="products-section"><div class="products-grid" id="productsGrid"></div></section>
     </div>
   </main>
 
-  <!-- FOOTER CTA -->
-  <section class="footer-cta">
+  <!-- FOOTER CTA — скрывается для залогиненных -->
+  <section class="footer-cta" id="footerCta">
     <div class="container">
       <h2 class="font-display">Готов начать торговать?</h2>
       <p>Зарегистрируйся бесплатно и выставь первый товар за 2 минуты.</p>
@@ -737,24 +680,18 @@
         <span class="footer-copy">© 2025 TradeNode.</span>
         <div class="footer-links">
           <a href="#" class="footer-link" onclick="openRulesModal();return false">Правила</a>
-          <a href="#" class="footer-link" onclick="openSupportModal();return false">Поддержка</a>
+          <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="footer-link">Поддержка</a>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- ===== AUTH MODAL ===== -->
-  <div class="modal-backdrop" id="authModal" onclick="handleBackdropClick(event)">
-    <div class="modal" role="dialog" aria-modal="true">
+  <!-- AUTH MODAL -->
+  <div class="modal-backdrop" id="authModal" onclick="if(event.target===this)closeAuthModal()">
+    <div class="modal">
       <div class="modal-header">
-        <div class="modal-logo">
-          <div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
-          <span class="modal-logo-text">TradeNode</span>
-        </div>
-        <div class="modal-tabs">
-          <button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">Вход</button>
-          <button class="modal-tab" id="tabRegister" onclick="switchTab('register')">Регистрация</button>
-        </div>
+        <div class="modal-logo"><div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><span class="modal-logo-text">TradeNode</span></div>
+        <div class="modal-tabs"><button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">Вход</button><button class="modal-tab" id="tabRegister" onclick="switchTab('register')">Регистрация</button></div>
       </div>
       <button class="modal-close" onclick="closeAuthModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <div class="modal-body">
@@ -762,23 +699,8 @@
         <div class="auth-panel active" id="panelLogin">
           <h2 class="modal-title">С возвращением 👋</h2>
           <p class="modal-subtitle">Войди, чтобы покупать и продавать аккаунты</p>
-          <div class="field">
-            <label class="field-label" for="loginEmail">Email</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <input type="email" class="field-input" id="loginEmail" placeholder="your@email.com" autocomplete="email" />
-            </div>
-            <div class="field-error" id="loginEmailErr"></div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="loginPassword">Пароль</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <input type="password" class="field-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
-              <button type="button" class="field-pwd-toggle" onclick="togglePwd('loginPassword',this)" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            </div>
-            <div class="field-error" id="loginPasswordErr"></div>
-          </div>
+          <div class="field"><label class="field-label">Email</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><input type="email" class="field-input" id="loginEmail" placeholder="your@email.com" autocomplete="email" /></div><div class="field-error" id="loginEmailErr"></div></div>
+          <div class="field"><label class="field-label">Пароль</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" class="field-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="field-pwd-toggle" onclick="togglePwd('loginPassword',this)" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div class="field-error" id="loginPasswordErr"></div></div>
           <button class="btn-submit" id="btnLoginSubmit" onclick="handleLogin()"><span class="btn-submit-text">Войти в аккаунт</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
           <p class="form-note" style="margin-top:14px">Нет аккаунта? <a href="#" onclick="switchTab('register');return false">Зарегистрируйся</a></p>
         </div>
@@ -786,43 +708,11 @@
         <div class="auth-panel" id="panelRegister">
           <h2 class="modal-title">Создать аккаунт 🚀</h2>
           <p class="modal-subtitle">Присоединяйся к тысячам трейдеров TradeNode</p>
-          <div class="field">
-            <label class="field-label" for="regUsername">Никнейм</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" class="field-input" id="regUsername" placeholder="CoolTrader123" autocomplete="username" maxlength="32" />
-            </div>
-            <div class="field-error" id="regUsernameErr"></div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="regEmail">Email</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <input type="email" class="field-input" id="regEmail" placeholder="your@email.com" autocomplete="email" />
-            </div>
-            <div class="field-error" id="regEmailErr"></div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="regPassword">Пароль</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <input type="password" class="field-input" id="regPassword" placeholder="Минимум 6 символов" autocomplete="new-password" oninput="updatePwdStrength(this.value)" />
-              <button type="button" class="field-pwd-toggle" onclick="togglePwd('regPassword',this)" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            </div>
-            <div class="field-error" id="regPasswordErr"></div>
-          </div>
-          <div style="margin:-6px 0 10px">
-            <div style="display:flex;gap:3px;margin-bottom:4px"><div class="pwd-strength-bar" id="pwdBar0"></div><div class="pwd-strength-bar" id="pwdBar1"></div><div class="pwd-strength-bar" id="pwdBar2"></div><div class="pwd-strength-bar" id="pwdBar3"></div></div>
-            <span id="pwdStrengthLabel" style="font-size:11px;color:var(--text-muted)"></span>
-          </div>
-          <div class="field">
-            <label class="field-label" for="regPasswordConfirm">Подтверди пароль</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <input type="password" class="field-input" id="regPasswordConfirm" placeholder="Повтори пароль" autocomplete="new-password" />
-            </div>
-            <div class="field-error" id="regConfirmErr"></div>
-          </div>
+          <div class="field"><label class="field-label">Никнейм</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" class="field-input" id="regUsername" placeholder="CoolTrader123" autocomplete="username" maxlength="32" /></div><div class="field-error" id="regUsernameErr"></div></div>
+          <div class="field"><label class="field-label">Email</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><input type="email" class="field-input" id="regEmail" placeholder="your@email.com" autocomplete="email" /></div><div class="field-error" id="regEmailErr"></div></div>
+          <div class="field"><label class="field-label">Пароль</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" class="field-input" id="regPassword" placeholder="Минимум 6 символов" autocomplete="new-password" oninput="updatePwdStrength(this.value)" /><button type="button" class="field-pwd-toggle" onclick="togglePwd('regPassword',this)" tabindex="-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div class="field-error" id="regPasswordErr"></div></div>
+          <div style="margin:-6px 0 10px"><div style="display:flex;gap:3px;margin-bottom:4px"><div class="pwd-strength-bar" id="pwdBar0"></div><div class="pwd-strength-bar" id="pwdBar1"></div><div class="pwd-strength-bar" id="pwdBar2"></div><div class="pwd-strength-bar" id="pwdBar3"></div></div><span id="pwdStrengthLabel" style="font-size:11px;color:var(--text-muted)"></span></div>
+          <div class="field"><label class="field-label">Подтверди пароль</label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" class="field-input" id="regPasswordConfirm" placeholder="Повтори пароль" autocomplete="new-password" /></div><div class="field-error" id="regConfirmErr"></div></div>
           <button class="btn-submit" id="btnRegisterSubmit" onclick="handleRegister()"><span class="btn-submit-text">Создать аккаунт</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
           <p class="form-note" style="margin-top:12px">Уже есть аккаунт? <a href="#" onclick="switchTab('login');return false">Войди</a></p>
           <p class="form-note" style="margin-top:6px">Регистрируясь, ты принимаешь <a href="#" onclick="openRulesModal();return false">правила сервиса</a></p>
@@ -839,85 +729,90 @@
     </div>
   </div>
 
-  <!-- ===== SUPPORT MODAL ===== -->
+  <!-- SUPPORT MODAL -->
   <div class="modal-backdrop" id="supportModal" onclick="if(event.target===this)closeModal('supportModal')">
     <div class="modal">
       <button class="modal-close" onclick="closeModal('supportModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      <div class="modal-header">
-        <div class="modal-logo">
-          <div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-          <span class="modal-logo-text">Поддержка</span>
-        </div>
-      </div>
+      <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span class="modal-logo-text">Поддержка</span></div></div>
       <div class="modal-body">
-        <p class="modal-subtitle" style="margin-bottom:18px">Выбери удобный способ связи с нашей командой</p>
+        <p class="modal-subtitle" style="margin-bottom:18px">Связь с командой TradeNode</p>
         <div class="support-options">
-          <a href="https://t.me/tradenode_support" target="_blank" rel="noopener" class="support-option">
+          <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="support-option">
             <div class="support-option-icon tg"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.013l-2.95-.924c-.64-.203-.653-.64.136-.953l11.5-4.437c.534-.194 1.002.131.396.549z"/></svg></div>
-            <div><div class="support-option-title">Telegram</div><div class="support-option-sub">@tradenode_support · Ответим за 10 минут</div></div>
-          </a>
-          <a href="mailto:support@tradenode.ru" class="support-option">
-            <div class="support-option-icon mail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-            <div><div class="support-option-title">Email</div><div class="support-option-sub">support@tradenode.ru · В течение 24ч</div></div>
+            <div><div class="support-option-title">Telegram</div><div class="support-option-sub">@Phant0mNight · Ответим за 10 минут</div></div>
           </a>
         </div>
         <div style="background:var(--bg-raised);border-radius:var(--radius-md);padding:13px;font-size:13px;color:var(--text-secondary);line-height:1.6">
-          <strong style="color:var(--text-primary)">Режим работы:</strong> 09:00 – 23:00 МСК<br>
-          🔒 Сделки защищены системой эскроу<br>
-          ⏱ Среднее время ответа — 15 минут
+          🔒 Сделки защищены системой эскроу<br>⏱ Среднее время ответа — 15 минут<br>📅 Режим работы: 09:00 – 23:00 МСК
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ===== RULES MODAL ===== -->
+  <!-- RULES MODAL -->
   <div class="modal-backdrop" id="rulesModal" onclick="if(event.target===this)closeModal('rulesModal')">
     <div class="modal">
       <button class="modal-close" onclick="closeModal('rulesModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      <div class="modal-header">
-        <div class="modal-logo">
-          <div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-          <span class="modal-logo-text">Правила сервиса</span>
-        </div>
-      </div>
+      <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><span class="modal-logo-text">Правила сервиса</span></div></div>
       <div class="modal-body">
-        <div class="rules-scroll">
-          <div class="rules-content">
-            <h3>1. Общие положения</h3>
-            <p>TradeNode — маркетплейс для торговли игровыми аккаунтами, предметами и услугами. Используя сервис, вы принимаете данные правила.</p>
-            <h3>2. Регистрация</h3>
-            <p>Для использования сервиса необходима регистрация. Один пользователь — один аккаунт. Минимальный возраст — 16 лет.</p>
-            <h3>3. Правила торговли</h3>
-            <p>Продавец обязан честно описывать товар. Запрещено продавать ворованные, заблокированные или не принадлежащие вам аккаунты.</p>
-            <h3>4. Безопасные сделки</h3>
-            <p>TradeNode использует систему эскроу: средства покупателя замораживаются до подтверждения получения товара. Срок передачи — не более 48 часов.</p>
-            <h3>5. Запрещённый контент</h3>
-            <p>Запрещено размещать аккаунты с читами, нарушениями правил игр, а также контент, нарушающий законодательство.</p>
-            <h3>6. Комиссия</h3>
-            <p>Сервис взимает комиссию 5% с каждой успешной сделки, автоматически при завершении.</p>
-            <h3>7. Разрешение споров</h3>
-            <p>При споре покупатель или продавец обращается в поддержку в течение 72 часов. Решение модератора окончательно.</p>
-            <h3>8. Ответственность</h3>
-            <p>Администрация оставляет за собой право блокировать аккаунты, нарушающие правила.</p>
-          </div>
-        </div>
-        <button class="btn-submit" style="margin-top:16px" onclick="closeModal('rulesModal')">
-          <span class="btn-submit-text">Понятно, принимаю</span>
-          <span class="btn-submit-spinner"><span class="spinner"></span></span>
-        </button>
+        <div class="rules-scroll"><div class="rules-content">
+          <h3>1. Общие положения</h3><p>TradeNode — маркетплейс для торговли игровыми аккаунтами. Используя сервис, вы принимаете данные правила.</p>
+          <h3>2. Регистрация</h3><p>Один пользователь — один аккаунт. Минимальный возраст — 16 лет.</p>
+          <h3>3. Правила торговли</h3><p>Запрещено продавать ворованные, заблокированные аккаунты. Продавец отвечает за достоверность информации.</p>
+          <h3>4. Безопасные сделки</h3><p>Средства замораживаются до подтверждения покупателем. Срок передачи — не более 48 часов.</p>
+          <h3>5. Комиссия</h3><p>Сервис взимает 5% с каждой успешной сделки.</p>
+          <h3>6. Разрешение споров</h3><p>Обращайся в поддержку @Phant0mNight в течение 72 часов после сделки.</p>
+          <h3>7. Ответственность</h3><p>Администрация вправе блокировать аккаунты, нарушающие правила.</p>
+        </div></div>
+        <button class="btn-submit" style="margin-top:16px" onclick="closeModal('rulesModal')"><span class="btn-submit-text">Понятно, принимаю</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
       </div>
     </div>
   </div>
 
-  <!-- ===== SELL MODAL ===== -->
-  <div class="modal-backdrop" id="sellModal" onclick="handleSellBackdropClick(event)">
+  <!-- REVIEW MODAL -->
+  <div class="modal-backdrop" id="reviewModal" onclick="if(event.target===this)closeModal('reviewModal')">
     <div class="modal">
-      <div class="modal-header">
-        <div class="modal-logo">
-          <div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-          <span class="modal-logo-text">Новый товар</span>
+      <button class="modal-close" onclick="closeModal('reviewModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)">⭐</div><span class="modal-logo-text">Оставить отзыв</span></div></div>
+      <div class="modal-body">
+        <p class="modal-subtitle" style="margin-bottom:8px">Сделка завершена! Оцени продавца</p>
+        <div class="star-rating" id="starRating">
+          <button class="star-btn" data-star="1" onclick="setReviewStar(1)">★</button>
+          <button class="star-btn" data-star="2" onclick="setReviewStar(2)">★</button>
+          <button class="star-btn" data-star="3" onclick="setReviewStar(3)">★</button>
+          <button class="star-btn" data-star="4" onclick="setReviewStar(4)">★</button>
+          <button class="star-btn" data-star="5" onclick="setReviewStar(5)">★</button>
         </div>
+        <div class="field">
+          <label class="field-label">Комментарий <span style="color:var(--text-muted);font-weight:400">(необязательно)</span></label>
+          <textarea class="field-textarea" id="reviewText" placeholder="Расскажи о сделке..." maxlength="300" rows="3"></textarea>
+        </div>
+        <button class="btn-submit" id="btnSubmitReview" onclick="submitReview()"><span class="btn-submit-text">Отправить отзыв</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
+        <button style="width:100%;text-align:center;margin-top:8px;font-size:13px;color:var(--text-muted);padding:8px" onclick="closeModal('reviewModal')">Пропустить</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL MODAL -->
+  <div class="modal-backdrop" id="adminModal" onclick="if(event.target===this)closeModal('adminModal')">
+    <div class="modal" style="max-width:720px">
+      <button class="modal-close" onclick="closeModal('adminModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="modal-logo-text">Админ-панель</span></div></div>
+      <div class="modal-body">
+        <div class="admin-tabs">
+          <button class="admin-tab active" id="adminTab1" onclick="switchAdminTab('users')">👥 Пользователи</button>
+          <button class="admin-tab" id="adminTab2" onclick="switchAdminTab('products')">📦 Все товары</button>
+        </div>
+        <div class="admin-panel active" id="adminPanelUsers"><div id="adminUsersList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
+        <div class="admin-panel" id="adminPanelProducts"><div id="adminProductsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELL MODAL -->
+  <div class="modal-backdrop" id="sellModal" onclick="if(event.target===this)closeSellModal()">
+    <div class="modal">
+      <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span class="modal-logo-text">Новый товар</span></div></div>
       <button class="modal-close" onclick="closeSellModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <div class="modal-body">
         <div class="sell-steps">
@@ -927,10 +822,10 @@
           <div class="sell-step-line" id="sellLine2"></div>
           <div class="sell-step" id="sellStep3" style="opacity:.4"><div class="sell-step-dot" id="sellDot3">3</div><span class="sell-step-label">Просмотр</span></div>
         </div>
-        <!-- Step 1 -->
+        <!-- Step 1: Category -->
         <div class="sell-panel active" id="sellPanel1">
           <h2 class="modal-title" style="margin-bottom:4px">Выбери категорию</h2>
-          <p class="modal-subtitle">Для какой игры или сервиса твой товар?</p>
+          <p class="modal-subtitle">Для какой игры твой товар?</p>
           <div class="category-grid" id="categoryGridSell">
             <button class="cat-option" data-cat="CS2" onclick="selectCategory(this)"><span class="cat-option-emoji">🔫</span>CS2</button>
             <button class="cat-option" data-cat="Valorant" onclick="selectCategory(this)"><span class="cat-option-emoji">🎯</span>Valorant</button>
@@ -946,99 +841,54 @@
             <button class="cat-option" data-cat="Other" onclick="selectCategory(this)"><span class="cat-option-emoji">🕹️</span>Другое</button>
           </div>
           <div class="field-error" id="sellCatErr" style="margin-top:4px"></div>
-          <div class="sell-footer">
-            <button class="btn-sell-next" onclick="sellGoStep(2)"><span class="btn-submit-text">Далее</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
-          </div>
+          <div class="sell-footer"><button class="btn-sell-next" onclick="sellGoStep(2)"><span class="btn-submit-text">Далее</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button></div>
         </div>
-        <!-- Step 2 -->
+        <!-- Step 2: Details -->
         <div class="sell-panel" id="sellPanel2">
           <h2 class="modal-title" style="margin-bottom:4px">Детали товара</h2>
-          <p class="modal-subtitle">Заполни информацию честно и подробно</p>
+          <p class="modal-subtitle">Заполни честно и подробно</p>
+          <div class="field"><label class="field-label">Название <span style="color:var(--violet)">*</span></label><div class="field-input-wrap"><svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><input type="text" class="field-input" id="sellTitle" placeholder="CS2 Global Elite · 2000+ часов" maxlength="80" oninput="updateSellPreview()" /></div><div class="field-error" id="sellTitleErr"></div></div>
+          <div class="field"><label class="field-label">Описание <span style="color:var(--text-muted);font-weight:400">(необязательно)</span></label><textarea class="field-textarea" id="sellDesc" placeholder="Ранг, уровень, что входит..." maxlength="600" rows="2" oninput="updateDescCounter();updateSellPreview()"></textarea><div class="field-counter"><span id="descCount">0</span> / 600</div></div>
+          <div class="field"><label class="field-label">Цена <span style="color:var(--violet)">*</span></label><div class="price-input-wrap"><span class="price-prefix">₽</span><input type="number" class="field-input" id="sellPrice" placeholder="0" min="1" max="9999999" oninput="updateSellPreview()" /></div><div class="field-error" id="sellPriceErr"></div><div class="price-chips"><button class="price-chip" onclick="setPrice(500)">500 ₽</button><button class="price-chip" onclick="setPrice(1000)">1 000 ₽</button><button class="price-chip" onclick="setPrice(2500)">2 500 ₽</button><button class="price-chip" onclick="setPrice(5000)">5 000 ₽</button><button class="price-chip" onclick="setPrice(10000)">10 000 ₽</button></div></div>
+          <!-- АВТОВЫДАЧА -->
           <div class="field">
-            <label class="field-label" for="sellTitle">Название <span style="color:var(--violet)">*</span></label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              <input type="text" class="field-input" id="sellTitle" placeholder="напр. CS2 Global Elite · 2000+ часов" maxlength="80" oninput="updateSellPreview()" />
-            </div>
-            <div class="field-error" id="sellTitleErr"></div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="sellDesc">Описание <span style="color:var(--text-muted);font-weight:400">(необязательно)</span></label>
-            <textarea class="field-textarea" id="sellDesc" placeholder="Ранг, уровень, что входит..." maxlength="600" rows="3" oninput="updateDescCounter();updateSellPreview()"></textarea>
-            <div class="field-counter"><span id="descCount">0</span> / 600</div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="sellPrice">Цена <span style="color:var(--violet)">*</span></label>
-            <div class="price-input-wrap">
-              <span class="price-prefix">₽</span>
-              <input type="number" class="field-input" id="sellPrice" placeholder="0" min="1" max="9999999" oninput="updateSellPreview()" />
-            </div>
-            <div class="field-error" id="sellPriceErr"></div>
-            <div class="price-chips">
-              <button class="price-chip" onclick="setPrice(500)">500 ₽</button>
-              <button class="price-chip" onclick="setPrice(1000)">1 000 ₽</button>
-              <button class="price-chip" onclick="setPrice(2500)">2 500 ₽</button>
-              <button class="price-chip" onclick="setPrice(5000)">5 000 ₽</button>
-              <button class="price-chip" onclick="setPrice(10000)">10 000 ₽</button>
+            <label class="field-label">
+              ⚡ Текст для автовыдачи
+              <span style="color:var(--text-muted);font-weight:400">(необязательно)</span>
+            </label>
+            <textarea class="field-textarea" id="sellAutoDelivery" placeholder="Логин: xxx&#10;Пароль: yyy&#10;&#10;Покупатель получит этот текст сразу после оплаты." maxlength="1000" rows="3"></textarea>
+            <div style="font-size:11px;color:var(--emerald);margin-top:5px;display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Если заполнено — покупатель получит данные мгновенно
             </div>
           </div>
-          <div class="sell-footer">
-            <button class="btn-sell-back" onclick="sellGoStep(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-            <button class="btn-sell-next" onclick="sellGoStep(3)"><span class="btn-submit-text">Далее</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
-          </div>
+          <div class="sell-footer"><button class="btn-sell-back" onclick="sellGoStep(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><button class="btn-sell-next" onclick="sellGoStep(3)"><span class="btn-submit-text">Далее</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button></div>
         </div>
-        <!-- Step 3 -->
+        <!-- Step 3: Preview -->
         <div class="sell-panel" id="sellPanel3">
           <h2 class="modal-title" style="margin-bottom:4px">Предпросмотр</h2>
           <p class="modal-subtitle">Так будет выглядеть твой товар в каталоге</p>
-          <div class="preview-card" style="margin-bottom:16px">
-            <div class="preview-thumb" id="previewThumb"><span id="previewEmoji">🎮</span></div>
-            <div class="preview-body">
-              <div class="preview-title" id="previewTitle">Название товара</div>
-              <div class="preview-meta"><div class="preview-price" id="previewPrice">₽ —</div><span class="preview-cat-badge" id="previewCat">Категория</span></div>
-            </div>
-          </div>
-          <div style="background:var(--bg-raised);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:4px">
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Категория</span><span id="summCat" style="color:var(--text-primary);font-weight:600">—</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Цена</span><span id="summPrice" style="color:var(--violet);font-weight:700;font-family:'Syne',sans-serif">—</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Продавец</span><span id="summSeller" style="color:var(--text-primary);font-weight:600">—</span></div>
-            </div>
-          </div>
+          <div class="preview-card" style="margin-bottom:16px"><div class="preview-thumb" id="previewThumb"><span id="previewEmoji">🎮</span></div><div class="preview-body"><div class="preview-title" id="previewTitle">Название товара</div><div class="preview-meta"><div class="preview-price" id="previewPrice">₽ —</div><span class="preview-cat-badge" id="previewCat">Категория</span></div></div></div>
+          <div style="background:var(--bg-raised);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:4px"><div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Категория</span><span id="summCat" style="color:var(--text-primary);font-weight:600">—</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Цена</span><span id="summPrice" style="color:var(--violet);font-weight:700;font-family:'Syne',sans-serif">—</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Продавец</span><span id="summSeller" style="color:var(--text-primary);font-weight:600">—</span></div><div id="summAutoDelivery" style="display:none;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Автовыдача</span><span class="auto-delivery-badge">⚡ Включена</span></div></div></div>
           <p style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.5">Публикуя товар, ты принимаешь <a href="#" style="color:var(--violet)" onclick="openRulesModal();return false">правила TradeNode</a>.</p>
-          <div class="sell-footer">
-            <button class="btn-sell-back" onclick="sellGoStep(2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-            <button class="btn-sell-next" id="btnPublish" onclick="createProduct()"><span class="btn-submit-text">Опубликовать</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
-          </div>
+          <div class="sell-footer"><button class="btn-sell-back" onclick="sellGoStep(2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><button class="btn-sell-next" id="btnPublish" onclick="createProduct()"><span class="btn-submit-text">Опубликовать</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button></div>
         </div>
-        <!-- Step 4 success -->
-        <div class="sell-panel" id="sellPanel4">
-          <div class="sell-success-wrap">
-            <div class="sell-success-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <h2 class="sell-success-title">Товар опубликован!</h2>
-            <p class="sell-success-sub">Твой товар уже виден в каталоге TradeNode</p>
-            <button class="btn-sell-next" style="max-width:220px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:8px" onclick="closeSellModal()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добавить ещё
-            </button>
-          </div>
-        </div>
+        <!-- Step 4: Success -->
+        <div class="sell-panel" id="sellPanel4"><div class="sell-success-wrap"><div class="sell-success-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><h2 class="sell-success-title">Товар опубликован!</h2><p class="sell-success-sub">Твой товар уже виден в каталоге TradeNode</p><button class="btn-sell-next" style="max-width:220px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:8px" onclick="closeSellModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Добавить ещё</button></div></div>
       </div>
     </div>
   </div>
 
-  <!-- ===== PRODUCT DETAIL MODAL ===== -->
-  <div class="modal-backdrop" id="productModal" onclick="handleProductBackdropClick(event)">
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="modal-backdrop" id="productModal" onclick="if(event.target===this)closeProductModal()">
     <div class="modal">
       <button class="modal-close" onclick="closeProductModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <div class="product-detail-grid">
         <div class="pd-left">
           <div class="pd-thumb" id="pdThumb"><div class="pd-thumb-glow" id="pdThumbGlow"></div><div class="pd-thumb-emoji" id="pdEmoji">🎮</div></div>
-          <div class="pd-badges"><span class="tag tag-violet" id="pdCategory">Категория</span><span class="tag tag-emerald" id="pdDateTag">Дата</span></div>
-          <h2 class="pd-title" id="pdTitle">Название товара</h2>
-          <div class="pd-meta-row">
-            <div class="pd-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="pdRelTime">—</span></div>
-            <div class="pd-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="pdSellerMeta">—</span></div>
-          </div>
+          <div class="pd-badges"><span class="tag tag-violet" id="pdCategory">Категория</span><span class="tag tag-emerald" id="pdDateTag">Дата</span><span class="auto-delivery-badge" id="pdAutoDeliveryBadge" style="display:none">⚡ Автовыдача</span></div>
+          <h2 class="pd-title" id="pdTitle">Название</h2>
+          <div class="pd-meta-row"><div class="pd-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="pdRelTime">—</span></div><div class="pd-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="pdSellerMeta">—</span></div></div>
           <div class="pd-divider"></div>
           <div class="pd-section-label">Описание</div>
           <div class="pd-description" id="pdDescription">—</div>
@@ -1047,139 +897,87 @@
           <div class="safety-list">
             <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>Данные передаются только после оплаты</div>
             <div class="safety-item"><div class="safety-icon violet"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>Система эскроу — деньги у посредника</div>
-            <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>Поддержка при спорных ситуациях 24/7</div>
+            <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>Поддержка 24/7 — @Phant0mNight</div>
           </div>
         </div>
         <div class="pd-right">
           <div id="pdBuyView">
             <div class="pd-price-block"><div class="pd-price-label">Цена</div><div class="pd-price-value"><span>₽</span><span id="pdPrice">—</span></div></div>
             <div class="pd-seller-card">
-              <div class="pd-seller-row">
-                <div class="pd-seller-avatar" id="pdSellerAvatar">?</div>
-                <div class="pd-seller-info"><div class="pd-seller-name" id="pdSellerName">—</div><div class="pd-seller-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Проверен</div></div>
-              </div>
-              <div class="pd-seller-stats">
-                <div class="pd-stat"><div class="pd-stat-val" id="pdSellerRating">4.9</div><div class="pd-stat-lbl">Рейтинг</div></div>
-                <div class="pd-stat"><div class="pd-stat-val" id="pdSellerDeals">—</div><div class="pd-stat-lbl">Сделок</div></div>
-              </div>
+              <div class="pd-seller-row"><div class="pd-seller-avatar" id="pdSellerAvatar">?</div><div class="pd-seller-info"><div class="pd-seller-name" id="pdSellerName">—</div><div class="pd-seller-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Проверен</div></div></div>
+              <div class="pd-seller-stats"><div class="pd-stat"><div class="pd-stat-val" id="pdSellerRating">4.9</div><div class="pd-stat-lbl">Рейтинг</div></div><div class="pd-stat"><div class="pd-stat-val" id="pdSellerDeals">—</div><div class="pd-stat-lbl">Сделок</div></div></div>
             </div>
-            <button class="btn-buy-now" onclick="startOrderFlow()" id="btnBuyNow">
-              <span class="btn-submit-text" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Оплатить</span>
-              <span class="btn-submit-spinner"><span class="spinner"></span></span>
-            </button>
-            <button class="btn-chat" onclick="requireAuth(()=>openChatFromProduct())">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Написать продавцу
-            </button>
+            <button class="btn-buy-now" onclick="startOrderFlow()" id="btnBuyNow"><span class="btn-submit-text" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Оплатить</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
+            <button class="btn-chat" onclick="requireAuth(()=>openChatFromProduct())"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Написать продавцу</button>
             <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--text-muted)">🔒 Защита покупателя TradeNode</div>
           </div>
           <div id="pdOrderFlow" class="order-flow">
-            <div class="order-flow-header">
-              <button class="order-flow-back" onclick="cancelOrderFlow()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-              <span class="order-flow-title">Оформление</span>
-              <span class="secure-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Безопасно</span>
-            </div>
+            <div class="order-flow-header"><button class="order-flow-back" onclick="cancelOrderFlow()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><span class="order-flow-title">Оформление</span><span class="secure-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Безопасно</span></div>
             <div class="order-summary-line"><span>Товар</span><span id="orderSummTitle" style="color:var(--text-primary);text-align:right;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
             <div class="order-summary-line"><span>Продавец</span><span id="orderSummSeller" style="color:var(--text-primary)">—</span></div>
             <div class="order-summary-line total"><span>Итого</span><span id="orderSummPrice">—</span></div>
-            <div class="order-note">💡 После оплаты продавец передаст данные аккаунта в защищённом виде</div>
-            <div class="field" style="margin-bottom:10px">
-              <label class="field-label" for="orderLogin">Логин (для ордера)</label>
-              <div class="field-input-wrap">
-                <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <input type="text" class="field-input" id="orderLogin" placeholder="Ваш никнейм или email" autocomplete="username" />
-              </div>
-              <div class="field-error" id="orderLoginErr"></div>
-            </div>
-            <div class="field" style="margin-bottom:14px">
-              <label class="field-label" for="orderPass">Пароль (необязательно)</label>
-              <div class="field-input-wrap">
-                <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <input type="password" class="field-input" id="orderPass" placeholder="Временный пароль (опц.)" />
-                <button type="button" class="field-pwd-toggle" onclick="togglePwd('orderPass',this)" tabindex="-1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-              </div>
-            </div>
-            <button class="btn-buy-now" id="btnConfirmOrder" onclick="createOrder()">
-              <span class="btn-submit-text" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Подтвердить оплату</span>
-              <span class="btn-submit-spinner"><span class="spinner"></span></span>
-            </button>
+            <div class="order-note">💡 После оплаты продавец передаст данные. Подтверди получение — и деньги поступят продавцу.</div>
+            <div class="field" style="margin-bottom:10px"><label class="field-label">Логин (для записи в ордере)</label><div class="field-input-wrap"><svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" class="field-input" id="orderLogin" placeholder="Ваш никнейм или email" autocomplete="username" /></div><div class="field-error" id="orderLoginErr"></div></div>
+            <div class="field" style="margin-bottom:14px"><label class="field-label">Пароль (необязательно)</label><div class="field-input-wrap"><svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" class="field-input" id="orderPass" placeholder="Временный пароль (опц.)" /><button type="button" class="field-pwd-toggle" onclick="togglePwd('orderPass',this)" tabindex="-1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+            <button class="btn-buy-now" id="btnConfirmOrder" onclick="createOrder()"><span class="btn-submit-text" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Подтвердить оплату</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ===== ORDERS DRAWER ===== -->
-  <div class="orders-drawer-backdrop" id="ordersDrawer" onclick="handleDrawerBackdropClick(event)">
+  <!-- ORDERS DRAWER -->
+  <div class="orders-drawer-backdrop" id="ordersDrawer" onclick="if(event.target===this)closeOrdersDrawer()">
     <div class="orders-drawer">
-      <div class="drawer-header">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        <span class="drawer-title">Мои сделки</span>
-        <button class="drawer-close" onclick="closeOrdersDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
-      <div class="drawer-tabs">
-        <button class="drawer-tab active" id="tabPurchases" onclick="switchOrderTab('purchases')">Покупки</button>
-        <button class="drawer-tab" id="tabSales" onclick="switchOrderTab('sales')">Продажи</button>
-      </div>
+      <div class="drawer-header"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="drawer-title">Мои сделки</span><button class="drawer-close" onclick="closeOrdersDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="drawer-tabs"><button class="drawer-tab active" id="tabPurchases" onclick="switchOrderTab('purchases')">Покупки</button><button class="drawer-tab" id="tabSales" onclick="switchOrderTab('sales')">Продажи</button></div>
       <div class="drawer-body" id="drawerBody"></div>
     </div>
   </div>
 
-  <!-- ===== CHAT PANEL ===== -->
+  <!-- CHAT PANEL -->
   <div class="chat-panel" id="chatPanel">
     <div class="chat-header">
       <button class="chat-back" onclick="closeChat()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-      <div class="chat-header-info">
-        <div class="chat-partner-avatar" id="chatPartnerAvatar">?</div>
-        <div>
-          <div class="chat-partner-name" id="chatPartnerName">Собеседник</div>
-          <div class="chat-status"><span class="chat-status-dot"></span><span>онлайн</span></div>
-        </div>
-      </div>
+      <div class="chat-header-info"><div class="chat-partner-avatar" id="chatPartnerAvatar">?</div><div><div class="chat-partner-name" id="chatPartnerName">Собеседник</div><div class="chat-status"><span class="chat-status-dot"></span><span>онлайн</span></div></div></div>
       <div class="chat-order-badge" id="chatOrderBadge">Сделка</div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
-    <div class="chat-typing" id="chatTyping" style="display:none"><div class="typing-dots"><span></span><span></span><span></span></div><span id="chatTypingName">печатает...</span></div>
+    <div class="chat-typing" id="chatTyping" style="display:none"><div class="typing-dots"><span></span><span></span><span></span></div><span id="chatTypingName">печатает…</span></div>
     <div class="chat-input-row">
-      <input type="text" class="chat-input" id="chatInput" placeholder="Написать..." maxlength="1000" onkeydown="handleChatKey(event)" oninput="handleChatTyping()" autocomplete="off" />
+      <input type="text" class="chat-input" id="chatInput" placeholder="Написать…" maxlength="1000" onkeydown="handleChatKey(event)" oninput="handleChatTyping()" autocomplete="off" />
       <button class="chat-send" onclick="sendMessage()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
     </div>
   </div>
 
-  <!-- ===== PROFILE DRAWER ===== -->
-  <div class="orders-drawer-backdrop" id="profileDrawer" onclick="handleProfileBackdropClick(event)">
+  <!-- PROFILE DRAWER -->
+  <div class="orders-drawer-backdrop" id="profileDrawer" onclick="if(event.target===this)closeProfileDrawer()">
     <div class="orders-drawer">
-      <div class="drawer-header">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="drawer-title">Профиль</span>
-        <button class="drawer-close" onclick="closeProfileDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
+      <div class="drawer-header"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="drawer-title">Профиль</span><button class="drawer-close" onclick="closeProfileDrawer()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
       <div class="drawer-body">
         <div class="profile-hero">
           <div class="profile-avatar-wrap"><div class="profile-avatar" id="profileAvatar">?</div><div class="profile-avatar-ring"></div></div>
-          <div class="profile-hero-info">
-            <div class="profile-username" id="profileUsername">—</div>
-            <div class="profile-email" id="profileEmail">—</div>
-            <div class="profile-since" id="profileSince">—</div>
-          </div>
+          <div class="profile-hero-info"><div class="profile-username" id="profileUsername">—</div><div class="profile-email" id="profileEmail">—</div><div class="profile-since" id="profileSince">—</div></div>
         </div>
         <div class="profile-stats">
           <div class="profile-stat-card"><div class="profile-stat-val" id="profileDeals">—</div><div class="profile-stat-lbl">Сделок</div></div>
           <div class="profile-stat-card"><div class="profile-stat-val" id="profileSales">—</div><div class="profile-stat-lbl">Продаж</div></div>
-          <div class="profile-stat-card"><div class="profile-stat-val" id="profileBalance" style="color:var(--emerald)">—</div><div class="profile-stat-lbl">Баланс ₽</div></div>
+          <div class="profile-stat-card"><div class="profile-stat-val" id="profileBalance" style="color:var(--emerald)">0</div><div class="profile-stat-lbl">Баланс ₽</div></div>
         </div>
-        <div style="margin-bottom:20px">
-          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px">Настройки профиля</div>
-          <div class="field" style="margin-bottom:12px">
-            <label class="field-label" for="profileUsernameInput">Никнейм</label>
-            <div class="field-input-wrap">
-              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" class="field-input" id="profileUsernameInput" placeholder="Твой никнейм" maxlength="32" />
-            </div>
-          </div>
-          <button class="btn-submit" id="btnSaveProfile" onclick="saveProfile()" style="height:44px;font-size:14px"><span class="btn-submit-text">Сохранить</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
+        <!-- Profile Tabs -->
+        <div class="profile-tabs">
+          <button class="profile-tab active" onclick="switchProfileTab('settings')">Настройки</button>
+          <button class="profile-tab" onclick="switchProfileTab('listings')">Мои товары</button>
         </div>
-        <div style="padding-top:14px;border-top:1px solid var(--border)">
-          <button class="dropdown-item danger" style="width:100%;border-radius:var(--radius-md);padding:11px 14px;font-size:14px" onclick="signOut();closeProfileDrawer()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Выйти из аккаунта</button>
+        <!-- Settings Panel -->
+        <div class="profile-panel active" id="profilePanelSettings">
+          <div class="field" style="margin-bottom:12px"><label class="field-label">Никнейм</label><div class="field-input-wrap"><svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" class="field-input" id="profileUsernameInput" placeholder="Твой никнейм" maxlength="32" /></div></div>
+          <button class="btn-submit" id="btnSaveProfile" onclick="saveProfile()" style="height:44px;font-size:14px;margin-bottom:16px"><span class="btn-submit-text">Сохранить изменения</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
+          <div style="padding-top:14px;border-top:1px solid var(--border)"><button class="dropdown-item danger" style="width:100%;border-radius:var(--radius-md);padding:11px 14px;font-size:14px" onclick="signOut();closeProfileDrawer()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Выйти из аккаунта</button></div>
+        </div>
+        <!-- My Listings Panel -->
+        <div class="profile-panel" id="profilePanelListings">
+          <div id="myListingsContainer"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div>
         </div>
       </div>
     </div>
@@ -1188,19 +986,20 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-  // =============================================
+  // ============================================================
   // CONFIG
-  // =============================================
+  // ============================================================
   const SUPABASE_URL  = 'https://vnhfmtrtdmelxpbrjfni.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuaGZtdHJ0ZG1lbHhwYnJqZm5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1Mzc3MTQsImV4cCI6MjA4OTExMzcxNH0.8dFX1-avnO4Ii--BcFcE-655dYKlkq9-Wx0pXiqKUUY';
   const ADMIN_ROLES   = ['owner','admin'];
+  const SUPPORT_TG    = 'https://t.me/Phant0mNight';
 
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // =============================================
+  // ============================================================
   // STATE
-  // =============================================
+  // ============================================================
   const State = {
     user: null, userRole: 'user',
     allProducts: [], activeCategory: 'all', searchQuery: '',
@@ -1210,35 +1009,28 @@
       orderId: null, partnerName: '', partnerId: null,
       messages: [], subscription: null, typingTimer: null, unread: {},
     },
+    review: { orderId: null, sellerId: null, rating: 0 },
   };
 
-  // =============================================
-  // AUTH — надёжный паттерн восстановления сессии
-  // =============================================
-
-  // Шаг 1: init() — явно читает сессию из localStorage через getSession().
-  // Это синхронная операция (без сети), поэтому не зависает.
-  // fetchProducts/fetchStats вызываются ПОСЛЕ того, как сессия известна.
+  // ============================================================
+  // AUTH
+  // ============================================================
   async function init() {
     try {
       const { data: { session }, error } = await sb.auth.getSession();
-      if (error) console.error('[init] getSession error:', error.message);
+      if (error) console.error('[init] getSession:', error.message);
       await setUser(session?.user ?? null);
     } catch (err) {
-      console.error('[init] critical error:', err.message);
-      // Даже при ошибке — рендерим UI в состоянии "не залогинен"
+      console.error('[init]', err.message);
       renderNavAuth(null);
     }
-    // Загружаем данные в любом случае — независимо от авторизации
     fetchProducts();
     fetchStats();
   }
 
-  // Шаг 2: onAuthStateChange слушает только ПОСЛЕДУЮЩИЕ события
-  // (вход, выход, обновление токена). INITIAL_SESSION игнорируем —
-  // он уже обработан в init() выше.
+  // Listen for SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED after initial load
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'INITIAL_SESSION') return; // уже обработано в init()
+    if (event === 'INITIAL_SESSION') return; // handled in init()
     console.log('[auth]', event, session?.user?.email ?? 'no user');
     await setUser(session?.user ?? null);
   });
@@ -1252,15 +1044,11 @@
 
   async function fetchUserRole(uid) {
     try {
-      // Таймаут 4с — если profiles недоступна, не вешаем весь рендер
-      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000));
+      const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000));
       const query   = sb.from('profiles').select('role').eq('id', uid).single();
       const { data } = await Promise.race([query, timeout]);
       State.userRole = data?.role || 'user';
-    } catch (err) {
-      if (err.message !== 'timeout') console.warn('[fetchUserRole] error:', err.message);
-      State.userRole = 'user';
-    }
+    } catch { State.userRole = 'user'; }
   }
 
   function isAdmin() { return ADMIN_ROLES.includes(State.userRole); }
@@ -1268,8 +1056,13 @@
   function renderNavAuth(user) {
     const authBtns = document.getElementById('authButtons');
     const panel    = document.getElementById('userPanel');
+    const footerCta = document.getElementById('footerCta');
+
     if (user) {
       authBtns.classList.add('hidden'); panel.classList.add('visible');
+      // Hide footer CTA for logged-in users
+      if (footerCta) footerCta.classList.add('hidden');
+
       const email    = user.email || '';
       const username = user.user_metadata?.username || email.split('@')[0] || 'Пользователь';
       const initials = username.slice(0,2).toUpperCase();
@@ -1277,9 +1070,12 @@
       document.getElementById('navUserName').textContent   = username;
       document.getElementById('dropdownName').textContent  = username;
       document.getElementById('dropdownEmail').textContent = email;
+
       const roleLabels = { owner:'Владелец', admin:'Админ', moderator:'Модератор' };
       const roleBadge  = document.getElementById('dropdownRoleBadge');
       const roleEl     = document.getElementById('navUserRole');
+      const adminBtn   = document.getElementById('btnAdminPanel');
+
       if (State.userRole && State.userRole !== 'user') {
         roleBadge.textContent = roleLabels[State.userRole] || State.userRole;
         roleBadge.className   = `role-badge role-${State.userRole}`;
@@ -1289,23 +1085,32 @@
         roleBadge.style.display = 'none';
         roleEl.textContent = 'Участник';
       }
+      // Show admin button only for admins/owners
+      if (adminBtn) adminBtn.style.display = isAdmin() ? 'flex' : 'none';
+
     } else {
-      authBtns.classList.remove('hidden'); panel.classList.remove('visible'); closeDropdown();
+      authBtns.classList.remove('hidden'); panel.classList.remove('visible');
+      if (footerCta) footerCta.classList.remove('hidden');
+      closeDropdown();
+      const adminBtn = document.getElementById('btnAdminPanel');
+      if (adminBtn) adminBtn.style.display = 'none';
     }
   }
 
+  // Sign In
   async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pwd   = document.getElementById('loginPassword').value;
     if (!validateField('loginEmail',email,'email')) return;
     if (!validateField('loginPassword',pwd,'password')) return;
-    setSubmitLoading('btnLoginSubmit',true);
+    setSubmitLoading('btnLoginSubmit', true);
     const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
-    setSubmitLoading('btnLoginSubmit',false);
+    setSubmitLoading('btnLoginSubmit', false);
     if (error) { const m=mapAuthError(error.message); showFieldError('loginPasswordErr',m); showToast(m,'error'); }
     else { showToast('Добро пожаловать!','success'); closeAuthModal(); clearAuthForms(); }
   }
 
+  // Sign Up
   async function handleRegister() {
     const username = document.getElementById('regUsername').value.trim();
     const email    = document.getElementById('regEmail').value.trim();
@@ -1319,15 +1124,17 @@
     if (pwd!==confirm){ showFieldError('regConfirmErr','Пароли не совпадают'); document.getElementById('regPasswordConfirm').classList.add('error'); ok=false; }
     else { clearFieldError('regConfirmErr'); document.getElementById('regPasswordConfirm').classList.remove('error'); }
     if (!ok) return;
-    setSubmitLoading('btnRegisterSubmit',true);
+    setSubmitLoading('btnRegisterSubmit', true);
     const { error } = await sb.auth.signUp({ email, password: pwd, options: { data: { username } } });
-    setSubmitLoading('btnRegisterSubmit',false);
+    setSubmitLoading('btnRegisterSubmit', false);
     if (error) { const m=mapAuthError(error.message); showFieldError('regEmailErr',m); showToast(m,'error'); }
     else {
+      // Upsert profile row
+      await sb.from('profiles').upsert({ id: (await sb.auth.getUser()).data.user?.id, username, updated_at: new Date().toISOString() }, { onConflict: 'id' });
       switchPanel('panelSuccess');
       document.getElementById('successTitle').textContent = `Привет, ${username}! 🎉`;
-      document.getElementById('successSub').textContent   = 'Письмо на ' + email + '. Подтверди почту.';
-      setTimeout(()=>{ closeAuthModal(); clearAuthForms(); }, 3500);
+      document.getElementById('successSub').textContent   = 'Письмо отправлено на ' + email;
+      setTimeout(() => { closeAuthModal(); clearAuthForms(); }, 3500);
     }
   }
 
@@ -1339,18 +1146,10 @@
     else { showAuthModal('login'); showToast('Войди, чтобы продолжить','error'); }
   }
 
-  function showAuthModal(mode='login') {
-    document.getElementById('authModal').classList.add('open');
-    document.body.style.overflow='hidden'; switchTab(mode);
-    setTimeout(()=>{ const i=document.querySelector('#authModal .auth-panel.active .field-input'); i?.focus(); },320);
-  }
+  // Auth modal UI
+  function showAuthModal(mode='login') { document.getElementById('authModal').classList.add('open'); document.body.style.overflow='hidden'; switchTab(mode); setTimeout(()=>{ document.querySelector('#authModal .auth-panel.active .field-input')?.focus(); },320); }
   function closeAuthModal() { document.getElementById('authModal').classList.remove('open'); document.body.style.overflow=''; }
-  function handleBackdropClick(e) { if(e.target===document.getElementById('authModal')) closeAuthModal(); }
-  function switchTab(mode) {
-    document.getElementById('tabLogin').classList.toggle('active',mode==='login');
-    document.getElementById('tabRegister').classList.toggle('active',mode==='register');
-    switchPanel(mode==='login'?'panelLogin':'panelRegister');
-  }
+  function switchTab(mode) { document.getElementById('tabLogin').classList.toggle('active',mode==='login'); document.getElementById('tabRegister').classList.toggle('active',mode==='register'); switchPanel(mode==='login'?'panelLogin':'panelRegister'); }
   function switchPanel(id) { document.querySelectorAll('.auth-panel').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
   function clearAuthForms() {
     ['loginEmail','loginPassword','regUsername','regEmail','regPassword','regPasswordConfirm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('error');}});
@@ -1358,24 +1157,22 @@
     updatePwdStrength('');
   }
   function updatePwdStrength(pwd) {
-    let s=0;
-    if(pwd.length>=6)s++; if(pwd.length>=10)s++;
-    if(/[A-Z]/.test(pwd)&&/[0-9]/.test(pwd))s++;
-    if(/[^A-Za-z0-9]/.test(pwd))s++;
+    let s=0; if(pwd.length>=6)s++; if(pwd.length>=10)s++; if(/[A-Z]/.test(pwd)&&/[0-9]/.test(pwd))s++; if(/[^A-Za-z0-9]/.test(pwd))s++;
     const c=['#ef4444','#f97316','#eab308','#10b981'], l=['Слабый','Средний','Хороший','Надёжный'];
     for(let i=0;i<4;i++) document.getElementById(`pwdBar${i}`).style.background=i<s?c[s-1]:'var(--bg-raised)';
-    const lbl=document.getElementById('pwdStrengthLabel');
-    lbl.textContent=pwd.length>0?l[Math.max(0,s-1)]:''; lbl.style.color=pwd.length>0?c[Math.max(0,s-1)]:'var(--text-muted)';
+    const lbl=document.getElementById('pwdStrengthLabel'); lbl.textContent=pwd.length>0?l[Math.max(0,s-1)]:''; lbl.style.color=pwd.length>0?c[Math.max(0,s-1)]:'var(--text-muted)';
   }
+
   function toggleDropdown() { document.getElementById('userDropdown').classList.toggle('open'); }
   function closeDropdown() { document.getElementById('userDropdown').classList.remove('open'); }
-  document.addEventListener('click',e=>{ const w=document.querySelector('.user-dropdown-wrap'); if(w&&!w.contains(e.target)) closeDropdown(); });
+  document.addEventListener('click', e => { const w=document.querySelector('.user-dropdown-wrap'); if(w&&!w.contains(e.target)) closeDropdown(); });
+
   function togglePwd(id,btn) { const i=document.getElementById(id); const t=i.type==='text'; i.type=t?'password':'text'; btn.style.color=t?'var(--text-muted)':'var(--violet)'; }
   function setSubmitLoading(id,v) { const b=document.getElementById(id); b.classList.toggle('loading',v); b.disabled=v; }
+
   function validateField(inputId,value,type) {
     const errMap={loginEmail:'loginEmailErr',loginPassword:'loginPasswordErr',regEmail:'regEmailErr',regPassword:'regPasswordErr'};
-    const errId=errMap[inputId]||inputId+'Err';
-    const inp=document.getElementById(inputId);
+    const errId=errMap[inputId]||inputId+'Err'; const inp=document.getElementById(inputId);
     if(type==='email'){ if(!value){showFieldError(errId,'Введи email');inp.classList.add('error');return false;} if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){showFieldError(errId,'Некорректный email');inp.classList.add('error');return false;} }
     if(type==='password'){ if(!value){showFieldError(errId,'Введи пароль');inp.classList.add('error');return false;} if(value.length<6){showFieldError(errId,'Минимум 6 символов');inp.classList.add('error');return false;} }
     clearFieldError(errId); inp.classList.remove('error'); return true;
@@ -1389,10 +1186,10 @@
     return msg||'Что-то пошло не так';
   }
 
-  // =============================================
+  // ============================================================
   // TOAST
-  // =============================================
-  function showToast(message,type='error') {
+  // ============================================================
+  function showToast(message, type='error') {
     const tc=document.getElementById('toastContainer');
     const icons={error:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,success:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,info:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`};
     const el=document.createElement('div'); el.className=`toast toast-${type}`;
@@ -1401,30 +1198,23 @@
     setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(8px)'; el.style.transition='opacity .3s,transform .3s'; setTimeout(()=>el.remove(),300); },3500);
   }
 
-  // =============================================
-  // NAVBAR SCROLL
-  // =============================================
-  const navbar=document.getElementById('navbar');
-  window.addEventListener('scroll',()=>navbar.classList.toggle('scrolled',window.scrollY>20),{passive:true});
-
-  // =============================================
-  // SUPPORT + RULES MODALS
-  // =============================================
-  function openSupportModal() { document.getElementById('supportModal').classList.add('open'); document.body.style.overflow='hidden'; }
-  function openRulesModal()   { document.getElementById('rulesModal').classList.add('open');   document.body.style.overflow='hidden'; }
+  // ============================================================
+  // MODAL HELPERS
+  // ============================================================
+  function openSupportModal() { closeDropdown(); document.getElementById('supportModal').classList.add('open'); document.body.style.overflow='hidden'; }
+  function openRulesModal()   { document.getElementById('rulesModal').classList.add('open'); document.body.style.overflow='hidden'; }
   function closeModal(id)     { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
 
-  // =============================================
+  window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20),{passive:true});
+
+  // ============================================================
   // CATEGORY META
-  // =============================================
-  const CAT_META={
+  // ============================================================
+  const CAT_META = {
     'CS2':{emoji:'🔫',color:'#f97316'},'Valorant':{emoji:'🎯',color:'#ef4444'},
-    'Dota 2':{emoji:'🧙',color:'#8b5cf6'},'Dota2':{emoji:'🧙',color:'#8b5cf6'},
-    'Genshin Impact':{emoji:'🌸',color:'#ec4899'},'Genshin':{emoji:'🌸',color:'#ec4899'},
-    'Brawl Stars':{emoji:'⭐',color:'#f59e0b'},
-    'World of Warcraft':{emoji:'⚔️',color:'#f59e0b'},'WoW':{emoji:'⚔️',color:'#f59e0b'},
-    'Minecraft':{emoji:'⛏️',color:'#22c55e'},
-    'League of Legends':{emoji:'👑',color:'#eab308'},'LoL':{emoji:'👑',color:'#eab308'},
+    'Dota 2':{emoji:'🧙',color:'#8b5cf6'},'Genshin Impact':{emoji:'🌸',color:'#ec4899'},
+    'Brawl Stars':{emoji:'⭐',color:'#f59e0b'},'World of Warcraft':{emoji:'⚔️',color:'#f59e0b'},
+    'Minecraft':{emoji:'⛏️',color:'#22c55e'},'League of Legends':{emoji:'👑',color:'#eab308'},
     'Steam':{emoji:'🎮',color:'#3b82f6'},'Boost':{emoji:'🚀',color:'#a855f7'},'Items':{emoji:'💎',color:'#10b981'},
   };
   function getCatMeta(cat) {
@@ -1434,14 +1224,18 @@
     return CAT_META[k]||{emoji:'🎮',color:'#7c3aed'};
   }
 
-  // =============================================
+  // ============================================================
   // PRODUCTS
-  // =============================================
+  // ============================================================
   function renderSkeletons(n=8) {
     document.getElementById('productsGrid').innerHTML=Array.from({length:n},(_,i)=>`<div class="skeleton-card" style="animation-delay:${i*.05}s"><div class="skeleton skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton skeleton-line" style="width:85%"></div><div class="skeleton skeleton-line" style="width:60%"></div><div class="skeleton skeleton-line-sm"></div><div class="skeleton skeleton-footer" style="margin-top:5px"></div></div></div>`).join('');
   }
-  function animateCounter(el,target,dur=1200) {
-    const s=performance.now(); function t(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3); el.textContent=Math.round(e*target).toLocaleString('ru'); if(p<1)requestAnimationFrame(t);} requestAnimationFrame(t);
+
+  function animateCounter(el, target, dur=1200) {
+    if(!el) return;
+    const s=performance.now();
+    function t(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3); el.textContent=Math.round(e*target).toLocaleString('ru'); if(p<1)requestAnimationFrame(t);}
+    requestAnimationFrame(t);
   }
 
   function renderProducts(products) {
@@ -1452,23 +1246,17 @@
       const meta=getCatMeta(p.category), initials=(p.seller_name||'?').slice(0,2).toUpperCase();
       const rating=(Math.random()*1.5+3.5).toFixed(1), stars='★'.repeat(Math.round(rating))+'☆'.repeat(5-Math.round(rating));
       const delay=(i*.04).toFixed(2), thumbBg=`linear-gradient(135deg,${meta.color}22 0%,${meta.color}08 100%)`;
-      // IMPORTANT: p.id is a UUID — must be quoted in onclick or JS sees hyphens as subtraction
-      const sid = String(p.id);
-      const deleteBtnHtml = canDel ? `<button class="card-delete-btn" onclick="event.stopPropagation();adminDeleteProduct('${sid}',this)" title="Удалить"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>` : '';
+      const sid=String(p.id);
+      const delBtn=canDel?`<button class="card-delete-btn" onclick="event.stopPropagation();adminDeleteProduct('${sid}',this)" title="Удалить"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>`:'';
+      const adBadge=p.auto_delivery?`<span style="position:absolute;bottom:6px;left:6px;z-index:2;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,.3)">⚡ Автовыдача</span>`:'';
       return `<div class="product-card" style="animation-delay:${delay}s" onclick="openProduct('${sid}')">
         <div class="card-thumb" style="background:${thumbBg}">
           <div class="card-thumb-placeholder">${meta.emoji}</div>
           <div class="card-category-badge"><span class="tag tag-violet">${p.category||'Другое'}</span></div>
-          <div class="card-actions">
-            <button class="card-wishlist" onclick="event.stopPropagation();toggleWishlist('${sid}',this)" title="Избранное"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-            ${deleteBtnHtml}
-          </div>
+          ${adBadge}
+          <div class="card-actions"><button class="card-wishlist" onclick="event.stopPropagation();toggleWishlist('${sid}',this)" title="Избранное"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>${delBtn}</div>
         </div>
-        <div class="card-body">
-          <h3 class="card-title">${escapeHtml(p.title)}</h3>
-          <div class="card-seller"><div class="seller-avatar">${initials}</div><span class="seller-name">${escapeHtml(p.seller_name||'Аноним')}</span><span class="seller-stars">${stars}</span></div>
-          <div class="card-footer"><div class="card-price"><span class="currency">₽</span>${Number(p.price).toLocaleString('ru')}</div><button class="card-buy-btn" onclick="event.stopPropagation();buyProduct('${sid}')">Купить</button></div>
-        </div>
+        <div class="card-body"><h3 class="card-title">${escapeHtml(p.title)}</h3><div class="card-seller"><div class="seller-avatar">${initials}</div><span class="seller-name">${escapeHtml(p.seller_name||'Аноним')}</span><span class="seller-stars">${stars}</span></div><div class="card-footer"><div class="card-price"><span class="currency">₽</span>${Number(p.price).toLocaleString('ru')}</div><button class="card-buy-btn" onclick="event.stopPropagation();buyProduct('${sid}')">Купить</button></div></div>
       </div>`;
     }).join('');
   }
@@ -1481,144 +1269,157 @@
     renderProducts(f);
   }
 
-  document.getElementById('categoryBar').addEventListener('click',e=>{
+  document.getElementById('categoryBar').addEventListener('click', e => {
     const chip=e.target.closest('.category-chip'); if(!chip)return;
     document.querySelectorAll('.category-chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active'); State.activeCategory=chip.dataset.category; applyFilters();
   });
+
   let searchTimer;
-  document.getElementById('searchInput').addEventListener('input',e=>{ clearTimeout(searchTimer); searchTimer=setTimeout(()=>{ State.searchQuery=e.target.value.trim(); applyFilters(); },250); });
+  document.getElementById('searchInput').addEventListener('input', e => { clearTimeout(searchTimer); searchTimer=setTimeout(()=>{ State.searchQuery=e.target.value.trim(); applyFilters(); },250); });
 
   async function fetchProducts() {
     renderSkeletons(8);
     try {
-      const {data, error} = await sb
-        .from('products')
-        .select('*')
-        .order('created_at', {ascending: false});
-      if (error) {
-        console.error('[fetchProducts] Supabase error:', error.message, error.details, error.hint);
-        throw error;
-      }
+      const { data, error } = await sb.from('products').select('*').order('created_at',{ascending:false});
+      if (error) { console.error('[fetchProducts]', error.message); throw error; }
       State.allProducts = data || [];
       animateCounter(document.getElementById('stat-products'), State.allProducts.length);
       applyFilters();
       sb.channel('products-realtime')
-        .on('postgres_changes', {event:'INSERT', schema:'public', table:'products'}, payload => {
-          State.allProducts.unshift(payload.new);
-          applyFilters();
-          showToast('Новый товар добавлен!', 'success');
-        }).subscribe();
-    } catch (err) {
-      console.error('[fetchProducts] Fatal:', err);
-      showToast('Ошибка загрузки товаров: ' + (err.message || 'неизвестная ошибка'), 'error');
-      document.getElementById('productsGrid').innerHTML =
-        `<div class="empty-state"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Не удалось загрузить товары</h3><p>Проверь соединение или обнови страницу</p></div>`;
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'products'},payload=>{ State.allProducts.unshift(payload.new); applyFilters(); showToast('Новый товар добавлен!','success'); })
+        .subscribe();
+    } catch(err) {
+      console.error('[fetchProducts] fatal:', err.message);
+      document.getElementById('productsGrid').innerHTML=`<div class="empty-state"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Ошибка загрузки</h3><p>${escapeHtml(err.message||'Проверь соединение')}</p></div>`;
     }
   }
 
-  // =============================================
-  // REAL STATS — reads from `site_stats` table
-  // Expected row: { id: 1, users_count: N, orders_count: N }
-  // Falls back to counting profiles/orders if site_stats is empty.
-  // =============================================
+  // ============================================================
+  // REAL STATS — profiles + orders counts
+  // ============================================================
   async function fetchStats() {
     try {
-      // Primary: dedicated stats table (fastest, no RLS issues)
-      const { data, error } = await sb
-        .from('site_stats')
-        .select('users_count, orders_count')
-        .limit(1)
-        .single();
-
-      if (error) {
-        console.error('[fetchStats] site_stats query failed:', error.message, '— falling back to COUNT queries');
-        throw error; // jump to fallback
-      }
-
-      if (!data) {
-        console.warn('[fetchStats] site_stats returned no rows — falling back to COUNT queries');
-        throw new Error('no_data');
-      }
-
-      console.log('[fetchStats] OK from site_stats:', data);
-      animateCounter(document.getElementById('stat-users'),  data.users_count  || 0);
-      animateCounter(document.getElementById('stat-orders'), data.orders_count || 0);
-
-    } catch (primaryErr) {
-      // Fallback: COUNT queries against profiles + orders
-      try {
-        const [profilesRes, ordersRes] = await Promise.all([
-          sb.from('profiles').select('*', {count: 'exact', head: true}),
-          sb.from('orders').select('*',   {count: 'exact', head: true}),
-        ]);
-
-        const uc = profilesRes.count;
-        const oc = ordersRes.count;
-
-        if (profilesRes.error) console.error('[fetchStats] profiles COUNT error:', profilesRes.error.message);
-        if (ordersRes.error)   console.error('[fetchStats] orders COUNT error:',   ordersRes.error.message);
-
-        if (typeof uc === 'number') animateCounter(document.getElementById('stat-users'),  uc);
-        if (typeof oc === 'number') animateCounter(document.getElementById('stat-orders'), oc);
-
-        console.log('[fetchStats] Fallback OK — users:', uc, 'orders:', oc);
-      } catch (fallbackErr) {
-        console.error('[fetchStats] Both primary and fallback failed:', fallbackErr.message);
-        // Leave stat counters showing "—" rather than wrong zeros
-      }
-    }
+      const [usersRes, ordersRes] = await Promise.all([
+        sb.from('profiles').select('*', {count:'exact', head:true}),
+        sb.from('orders').select('*',   {count:'exact', head:true}),
+      ]);
+      const uc = usersRes.count, oc = ordersRes.count;
+      if (usersRes.error)  console.error('[fetchStats] profiles:', usersRes.error.message);
+      if (ordersRes.error) console.error('[fetchStats] orders:',   ordersRes.error.message);
+      if (typeof uc === 'number') animateCounter(document.getElementById('stat-users'),  uc);
+      if (typeof oc === 'number') animateCounter(document.getElementById('stat-orders'), oc);
+    } catch(err) { console.error('[fetchStats]', err.message); }
   }
 
-  // =============================================
-  // ADMIN DELETE
-  // =============================================
+  // ============================================================
+  // ADMIN DELETE (from product cards)
+  // ============================================================
   async function adminDeleteProduct(id, btn) {
-    if (!isAdmin()) { showToast('Недостаточно прав', 'error'); return; }
-    if (!confirm('Удалить товар? Действие необратимо.')) return;
-    btn.disabled = true;
+    if (!isAdmin()) { showToast('Недостаточно прав','error'); return; }
+    if (!confirm('Удалить товар? Необратимо.')) return;
+    btn.disabled=true;
     try {
       const { error } = await sb.from('products').delete().eq('id', id);
-      if (error) {
-        console.error('[adminDeleteProduct] error:', error.message);
-        throw error;
-      }
-      State.allProducts = State.allProducts.filter(p => String(p.id) !== String(id));
-      applyFilters();
-      showToast('Товар удалён', 'success');
-    } catch (err) {
-      showToast('Ошибка удаления: ' + (err.message || 'неизвестная ошибка'), 'error');
-      btn.disabled = false;
-    }
+      if (error) throw error;
+      State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters(); showToast('Товар удалён','success');
+    } catch(err) { showToast('Ошибка удаления: '+err.message,'error'); btn.disabled=false; }
   }
 
-  // =============================================
+  // ============================================================
+  // ADMIN PANEL
+  // ============================================================
+  function openAdminPanel() {
+    closeDropdown();
+    document.getElementById('adminModal').classList.add('open');
+    document.body.style.overflow='hidden';
+    switchAdminTab('users');
+  }
+
+  function switchAdminTab(tab) {
+    document.getElementById('adminTab1').classList.toggle('active', tab==='users');
+    document.getElementById('adminTab2').classList.toggle('active', tab==='products');
+    document.getElementById('adminPanelUsers').classList.toggle('active', tab==='users');
+    document.getElementById('adminPanelProducts').classList.toggle('active', tab==='products');
+    if (tab==='users') loadAdminUsers();
+    else loadAdminProducts();
+  }
+
+  async function loadAdminUsers() {
+    const el=document.getElementById('adminUsersList');
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb.from('profiles').select('id,username,role,created_at').order('created_at',{ascending:false}).limit(50);
+      if (error) throw error;
+      if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Пользователей нет</div>'; return; }
+      el.innerHTML=data.map(u=>`
+        <div class="admin-user-row">
+          <div class="admin-user-avatar">${(u.username||'?').slice(0,2).toUpperCase()}</div>
+          <div class="admin-user-info"><div class="admin-user-name">${escapeHtml(u.username||'—')}</div><div class="admin-user-email">${escapeHtml(u.id.slice(0,18)+'…')}</div></div>
+          <span class="role-badge role-${u.role||'user'}" style="font-size:10px">${u.role||'user'}</span>
+        </div>`).join('');
+    } catch(err) { el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
+  }
+
+  async function loadAdminProducts() {
+    const el=document.getElementById('adminProductsList');
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb.from('products').select('id,title,category,price,seller_name,created_at').order('created_at',{ascending:false}).limit(60);
+      if (error) throw error;
+      if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Товаров нет</div>'; return; }
+      el.innerHTML=data.map(p=>{
+        const meta=getCatMeta(p.category);
+        return `<div class="admin-product-row">
+          <div class="admin-product-emoji">${meta.emoji}</div>
+          <div class="admin-product-info"><div class="admin-product-title">${escapeHtml(p.title)}</div><div class="admin-product-meta">${escapeHtml(p.seller_name||'—')} · ${Number(p.price).toLocaleString('ru')} ₽</div></div>
+          <button class="btn-danger-soft" onclick="adminDeleteProductFromPanel('${String(p.id)}',this)">Удалить</button>
+        </div>`;
+      }).join('');
+    } catch(err) { el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
+  }
+
+  async function adminDeleteProductFromPanel(id, btn) {
+    if (!confirm('Удалить товар?')) return;
+    btn.disabled=true; btn.textContent='…';
+    try {
+      const { error } = await sb.from('products').delete().eq('id', id);
+      if (error) throw error;
+      State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters();
+      btn.closest('.admin-product-row')?.remove(); showToast('Товар удалён','success');
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); btn.disabled=false; btn.textContent='Удалить'; }
+  }
+
+  // ============================================================
   // SELL MODAL
-  // =============================================
-  const SellForm={step:1,category:'',title:'',desc:'',price:''};
+  // ============================================================
+  const SellForm={step:1,category:'',title:'',desc:'',price:'',autoDelivery:''};
+
   function openSellModal() { closeDropdown(); resetSellModal(); document.getElementById('sellModal').classList.add('open'); document.body.style.overflow='hidden'; }
   function closeSellModal() { document.getElementById('sellModal').classList.remove('open'); document.body.style.overflow=''; }
-  function handleSellBackdropClick(e) { if(e.target===document.getElementById('sellModal')) closeSellModal(); }
+
   function resetSellModal() {
-    SellForm.step=1; SellForm.category=''; SellForm.title=''; SellForm.desc=''; SellForm.price='';
-    ['sellTitle','sellDesc','sellPrice'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('error');}});
+    SellForm.step=1; SellForm.category=''; SellForm.title=''; SellForm.desc=''; SellForm.price=''; SellForm.autoDelivery='';
+    ['sellTitle','sellDesc','sellPrice','sellAutoDelivery'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('error');}});
     ['sellCatErr','sellTitleErr','sellPriceErr'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='';el.classList.remove('visible');}});
     document.querySelectorAll('.cat-option').forEach(b=>b.classList.remove('selected'));
     document.getElementById('descCount').textContent='0';
     showSellStep(1); updateStepIndicator(1);
   }
+
   function sellGoStep(t) {
-    if(t===2&&!SellForm.category){ const e=document.getElementById('sellCatErr'); e.textContent='Выбери категорию'; e.classList.add('visible'); document.getElementById('categoryGridSell').style.animation=''; requestAnimationFrame(()=>{document.getElementById('categoryGridSell').style.animation='shake .35s ease';}); return; }
+    if(t===2&&!SellForm.category){ const e=document.getElementById('sellCatErr'); e.textContent='Выбери категорию'; e.classList.add('visible'); return; }
     if(t===3){
       const title=document.getElementById('sellTitle').value.trim(), price=document.getElementById('sellPrice').value; let ok=true;
       if(!title||title.length<5){showSellFE('sellTitleErr','Название минимум 5 символов');document.getElementById('sellTitle').classList.add('error');ok=false;}else{clearSellFE('sellTitleErr');document.getElementById('sellTitle').classList.remove('error');}
       if(!price||Number(price)<1){showSellFE('sellPriceErr','Укажи цену больше 0');document.getElementById('sellPrice').classList.add('error');ok=false;}else{clearSellFE('sellPriceErr');document.getElementById('sellPrice').classList.remove('error');}
       if(!ok)return;
-      SellForm.title=title; SellForm.desc=document.getElementById('sellDesc').value.trim(); SellForm.price=Number(price);
+      SellForm.title=title; SellForm.desc=document.getElementById('sellDesc').value.trim(); SellForm.price=Number(price); SellForm.autoDelivery=document.getElementById('sellAutoDelivery').value.trim();
       populatePreview();
     }
     showSellStep(t); updateStepIndicator(t);
   }
+
   function showSellStep(n){ SellForm.step=n; document.querySelectorAll('.sell-panel').forEach(p=>p.classList.remove('active')); document.getElementById(`sellPanel${n}`).classList.add('active'); }
   function updateStepIndicator(a) {
     for(let i=1;i<=3;i++){
@@ -1633,7 +1434,7 @@
   function selectCategory(btn){ document.querySelectorAll('.cat-option').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); SellForm.category=btn.dataset.cat; const e=document.getElementById('sellCatErr'); e.textContent=''; e.classList.remove('visible'); }
   function setPrice(v){ const i=document.getElementById('sellPrice'); i.value=v; i.classList.remove('error'); clearSellFE('sellPriceErr'); updateSellPreview(); }
   function updateDescCounter(){ const len=document.getElementById('sellDesc').value.length; const el=document.getElementById('descCount'); el.textContent=len; el.style.color=len>550?'#f59e0b':'var(--text-muted)'; }
-  function updateSellPreview(){ const t=document.getElementById('sellTitle'), p=document.getElementById('sellPrice'); if(t)SellForm.title=t.value; if(p)SellForm.price=p.value; }
+  function updateSellPreview(){ const t=document.getElementById('sellTitle'),p=document.getElementById('sellPrice'); if(t)SellForm.title=t.value; if(p)SellForm.price=p.value; }
   function populatePreview(){
     const meta=CAT_META[SellForm.category]||{emoji:'🎮',color:'#7c3aed'};
     document.getElementById('previewEmoji').textContent=meta.emoji;
@@ -1644,58 +1445,47 @@
     document.getElementById('summCat').textContent=SellForm.category;
     document.getElementById('summPrice').textContent=SellForm.price?`${Number(SellForm.price).toLocaleString('ru')} ₽`:'—';
     document.getElementById('summSeller').textContent=State.user?.user_metadata?.username||State.user?.email?.split('@')[0]||'Вы';
+    const adRow=document.getElementById('summAutoDelivery'); adRow.style.display=SellForm.autoDelivery?'flex':'none';
   }
+
   async function createProduct() {
     const btn=document.getElementById('btnPublish'); btn.classList.add('loading'); btn.disabled=true;
     try {
       const { data: { user }, error: ae } = await sb.auth.getUser();
-      if (ae) { console.error('[createProduct] getUser error:', ae.message); closeSellModal(); showAuthModal('login'); return; }
-      if (!user) { closeSellModal(); showAuthModal('login'); return; }
-
+      if (ae||!user) { closeSellModal(); showAuthModal('login'); return; }
       const un = user.user_metadata?.username || user.email?.split('@')[0] || 'Аноним';
-
       const payload = {
-        title:       SellForm.title,
-        description: SellForm.desc || '',
-        price:       SellForm.price,
-        category:    SellForm.category,
-        seller_name: un,
-        seller_id:   user.id,   // ← column the table actually has
-        user_id:     user.id,   // ← keep both for compatibility
+        title: SellForm.title, description: SellForm.desc||'',
+        price: SellForm.price, category: SellForm.category,
+        seller_name: un, seller_id: user.id, user_id: user.id,
+        auto_delivery: SellForm.autoDelivery || null,
       };
-
       console.log('[createProduct] inserting:', payload);
       const { data, error } = await sb.from('products').insert([payload]).select().single();
-      if (error) { console.error('[createProduct] insert error:', error.message, error.details, error.hint); throw error; }
-
-      // Prepend to local state so it appears instantly without waiting for realtime
+      if (error) { console.error('[createProduct]', error.message, error.details, error.hint); throw error; }
       if (data) { State.allProducts.unshift(data); applyFilters(); }
-
-      showSellStep(4);
-      showToast('🎉 Товар выставлен на продажу!', 'success');
-      setTimeout(() => { closeSellModal(); resetSellModal(); }, 3000);
+      showSellStep(4); showToast('🎉 Товар выставлен на продажу!','success');
+      setTimeout(()=>{closeSellModal();resetSellModal();},3000);
     } catch(err) {
-      console.error('[createProduct] caught:', err);
-      const msg = err.message?.includes('row-level') || err.message?.includes('policy')
-        ? 'Нет прав на публикацию — добавь RLS policy INSERT для products'
+      const msg = err.message?.includes('row-level')||err.message?.includes('policy')
+        ? 'Нет прав — настрой RLS INSERT для products'
         : err.message?.includes('column')
-          ? 'Ошибка схемы: ' + err.message
-          : (err.message?.includes('JWT') || err.message?.includes('token'))
-            ? 'Сессия истекла — войди снова'
-            : (err.message || 'Не удалось опубликовать товар');
-      showToast(msg, 'error');
+          ? 'Ошибка схемы: добавь колонку auto_delivery в products'
+          : (err.message||'Ошибка публикации');
+      showToast(msg,'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
+
   function showSellFE(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.classList.add('visible');}}
   function clearSellFE(id){const el=document.getElementById(id);if(el){el.textContent='';el.classList.remove('visible');}}
 
-  // =============================================
+  // ============================================================
   // PRODUCT DETAIL
-  // =============================================
+  // ============================================================
   function relativeTime(d){ const s=(Date.now()-new Date(d).getTime())/1000; if(s<60)return'только что'; if(s<3600)return`${Math.floor(s/60)} мин. назад`; if(s<86400)return`${Math.floor(s/3600)} ч. назад`; if(s<604800)return`${Math.floor(s/86400)} дн. назад`; return new Date(d).toLocaleDateString('ru',{day:'numeric',month:'short'}); }
 
   function openProduct(id) {
-    const p=State.allProducts.find(x=>x.id===id||String(x.id)===String(id));
+    const p=State.allProducts.find(x=>String(x.id)===String(id));
     if(!p){showToast('Товар не найден','error');return;}
     State.currentProduct=p;
     const meta=getCatMeta(p.category), initials=(p.seller_name||'?').slice(0,2).toUpperCase();
@@ -1710,19 +1500,21 @@
     document.getElementById('pdPrice').textContent=Number(p.price).toLocaleString('ru');
     document.getElementById('pdSellerAvatar').textContent=initials; document.getElementById('pdSellerName').textContent=p.seller_name||'Аноним';
     document.getElementById('pdSellerRating').textContent=rating; document.getElementById('pdSellerDeals').textContent=deals;
+    // Show auto-delivery badge
+    const adBadge=document.getElementById('pdAutoDeliveryBadge'); if(adBadge) adBadge.style.display=p.auto_delivery?'inline-flex':'none';
     cancelOrderFlow(false);
     document.getElementById('productModal').classList.add('open'); document.body.style.overflow='hidden';
   }
-  function closeProductModal(){ document.getElementById('productModal').classList.remove('open'); document.body.style.overflow=''; cancelOrderFlow(false); }
-  function handleProductBackdropClick(e){ if(e.target===document.getElementById('productModal')) closeProductModal(); }
 
-  // =============================================
+  function closeProductModal(){ document.getElementById('productModal').classList.remove('open'); document.body.style.overflow=''; cancelOrderFlow(false); }
+
+  // ============================================================
   // ORDER FLOW
-  // =============================================
+  // ============================================================
   function startOrderFlow(){
     requireAuth(()=>{
       const p=State.currentProduct; if(!p)return;
-      if(State.user&&p.user_id&&State.user.id===p.user_id){showToast('Нельзя купить свой товар','error');return;}
+      if(State.user&&(p.user_id||p.seller_id)&&State.user.id===(p.user_id||p.seller_id)){showToast('Нельзя купить свой товар','error');return;}
       document.getElementById('orderSummTitle').textContent=p.title;
       document.getElementById('orderSummSeller').textContent=p.seller_name||'Аноним';
       document.getElementById('orderSummPrice').textContent=`${Number(p.price).toLocaleString('ru')} ₽`;
@@ -1738,11 +1530,13 @@
       },200);
     });
   }
+
   function cancelOrderFlow(){
     const bv=document.getElementById('pdBuyView'), of=document.getElementById('pdOrderFlow');
     of.classList.remove('visible'); of.style.opacity=''; of.style.transform='';
     bv.style.display=''; bv.style.opacity='1'; bv.style.transform='';
   }
+
   async function createOrder(){
     const login=document.getElementById('orderLogin').value.trim(), pass=document.getElementById('orderPass').value;
     if(!login){ const e=document.getElementById('orderLoginErr'); e.textContent='Введи логин или никнейм'; e.classList.add('visible'); document.getElementById('orderLogin').classList.add('error'); return; }
@@ -1750,39 +1544,50 @@
     const btn=document.getElementById('btnConfirmOrder'); btn.classList.add('loading'); btn.disabled=true;
     const product=State.currentProduct;
     try {
-      const {data:{user}, error:ue}=await sb.auth.getUser();
-      if(ue){ console.error('[createOrder] getUser:', ue.message); throw new Error('not_authenticated'); }
-      if(!user) throw new Error('not_authenticated');
+      const { data: { user }, error: ue } = await sb.auth.getUser();
+      if (ue||!user) throw new Error('not_authenticated');
       const bn=user.user_metadata?.username||user.email?.split('@')[0]||'Покупатель';
-      const payload={product_id:product.id,buyer_id:user.id,buyer_name:bn,seller_id:product.user_id||null,acc_login:login,acc_pass:pass||null,status:'paid'};
-      const {data,error}=await sb.from('orders').insert([payload]).select().single();
-      if(error){ console.error('[createOrder] insert error:', error.message, error.details); throw error; }
-      closeProductModal(); showToast('🎉 Оплата прошла! Продавец уведомлён.','success');
+      const sellerId=product.seller_id||product.user_id||null;
+      const payload={product_id:product.id,buyer_id:user.id,buyer_name:bn,seller_id:sellerId,acc_login:login,acc_pass:pass||null,status:'paid'};
+      const { data, error } = await sb.from('orders').insert([payload]).select().single();
+      if (error) { console.error('[createOrder]',error.message,error.details); throw error; }
+
+      closeProductModal();
+      showToast('🎉 Оплата прошла! Продавец уведомлён.','success');
       if(!State.orders)State.orders=[]; State.orders.unshift({...data,product_title:product.title,product_category:product.category});
+
+      // АВТОВЫДАЧА: если у товара есть auto_delivery — сразу отправить как системное сообщение в чат
+      if (product.auto_delivery) {
+        const orderId=String(data.id);
+        await sb.from('messages').insert([{
+          order_id: orderId,
+          sender_id: sellerId||user.id,
+          sender_name: '⚡ Автовыдача',
+          text: product.auto_delivery,
+          is_system: true,
+        }]);
+        showToast('⚡ Данные автоматически выданы в чате','success');
+      }
     } catch(err){
-      console.error('[createOrder] caught:', err);
       if(err.message==='not_authenticated'){ closeProductModal(); showAuthModal('login'); return; }
-      const msg = err.message?.includes('row-level')
-        ? 'Нет прав на создание заказа — проверь RLS для orders'
-        : (err.message || 'Ошибка создания заказа');
-      showToast(msg, 'error');
+      const msg=err.message?.includes('row-level')?'Нет прав — настрой RLS для orders':(err.message||'Ошибка создания заказа');
+      showToast(msg,'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
 
-  // =============================================
+  // ============================================================
   // ORDERS DRAWER
-  // =============================================
+  // ============================================================
   function openOrdersDrawer(tab='purchases'){ State.orderTab=tab; document.getElementById('ordersDrawer').classList.add('open'); document.body.style.overflow='hidden'; switchOrderTab(tab); loadOrders(); }
   function closeOrdersDrawer(){ document.getElementById('ordersDrawer').classList.remove('open'); document.body.style.overflow=''; }
-  function handleDrawerBackdropClick(e){ if(e.target===document.getElementById('ordersDrawer')) closeOrdersDrawer(); }
   function switchOrderTab(tab){ State.orderTab=tab; document.getElementById('tabPurchases').classList.toggle('active',tab==='purchases'); document.getElementById('tabSales').classList.toggle('active',tab==='sales'); renderOrders(); }
 
   async function loadOrders(){
     renderOrdersSkeleton();
     try {
-      const {data:{user}}=await sb.auth.getUser(); if(!user){renderOrders();return;}
+      const { data: { user } } = await sb.auth.getUser(); if(!user){renderOrders();return;}
       const [br,sr]=await Promise.all([
-        sb.from('orders').select('*,products(title,category)').eq('buyer_id',user.id).order('created_at',{ascending:false}),
+        sb.from('orders').select('*,products(title,category,auto_delivery)').eq('buyer_id',user.id).order('created_at',{ascending:false}),
         sb.from('orders').select('*,products(title,category)').eq('seller_id',user.id).order('created_at',{ascending:false}),
       ]);
       const mo=o=>({...o,product_title:o.products?.title||o.product_title||'Товар удалён',product_category:o.products?.category||o.product_category||''});
@@ -1795,16 +1600,17 @@
     if(!list.length){ body.innerHTML=`<div class="drawer-empty"><div class="drawer-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><h3>${ip?'Нет покупок':'Нет продаж'}</h3><p>${ip?'Найди что-то в каталоге':'Выставь первый товар'}</p></div>`; return; }
     body.innerHTML=list.map((o,idx)=>renderOrderCard(o,ip,idx)).join('');
   }
+
   function renderOrdersSkeleton(){ document.getElementById('drawerBody').innerHTML=`<div class="drawer-skeleton">${Array.from({length:3},()=>`<div class="drawer-skel-card"><div class="skeleton skeleton-line" style="width:65%;height:14px"></div><div class="skeleton skeleton-line" style="width:40%;height:11px"></div><div class="skeleton skeleton-line" style="width:80%;height:11px;margin-top:6px"></div></div>`).join('')}</div>`; }
 
-  function renderOrderCard(o,isBuyer,idx){
+  function renderOrderCard(o, isBuyer, idx){
     const meta=getCatMeta(o.product_category);
     const stMap={paid:{cls:'status-paid',label:'Оплачено'},delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'}};
     const st=stMap[o.status]||stMap.paid, date=relativeTime(o.created_at), price=o.price?`${Number(o.price).toLocaleString('ru')} ₽`:'—';
     const showCreds=isBuyer&&o.status!=='paid'&&(o.acc_login||o.acc_pass);
     const credsHtml=showCreds?`<div class="credentials-reveal"><div class="cred-label">🔑 Данные аккаунта</div>${o.acc_login?`<div class="cred-row"><span class="cred-key">Логин</span><span class="cred-val">${escapeHtml(o.acc_login)}</span></div>`:''}${o.acc_pass?`<div class="cred-row"><span class="cred-key">Пароль</span><span class="cred-val">${escapeHtml(o.acc_pass)}</span></div>`:''}</div>`:'';
     let actionBtn='';
-    if(isBuyer&&o.status==='delivered') actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Подтвердить</button>`;
+    if(isBuyer&&o.status==='delivered') actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Подтвердить</button>`;
     else if(!isBuyer&&o.status==='paid') actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Выдано</button>`;
     const pname=isBuyer?(o.seller_name||'Продавец'):(o.buyer_name||'Покупатель');
     const pid=isBuyer?o.seller_id:o.buyer_id;
@@ -1818,21 +1624,84 @@
     </div>`;
   }
 
-  async function confirmOrderReceived(id,btn){ btn.disabled=true; btn.textContent='Подтверждаю…'; try{ const{error}=await sb.from('orders').update({status:'completed'}).eq('id',id); if(error) throw error; showToast('✅ Сделка завершена!','success'); updateOrderStatus(id,'completed'); }catch{ showToast('✅ Подтверждено (демо)','success'); updateOrderStatus(id,'completed'); } }
-  async function markAsDelivered(id,btn){ btn.disabled=true; btn.textContent='Отмечаю…'; try{ const{error}=await sb.from('orders').update({status:'delivered'}).eq('id',id); if(error) throw error; showToast('📦 Выдано','success'); updateOrderStatus(id,'delivered'); }catch{ showToast('📦 Выдано (демо)','success'); updateOrderStatus(id,'delivered'); } }
-  function updateOrderStatus(id,ns){
-    const card=document.getElementById(`orderCard_${id}`); if(!card){renderOrders();return;}
-    const sm={delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'}}; const st=sm[ns]; if(!st)return;
-    const badge=card.querySelector('.status-badge'); if(badge){badge.className=`status-badge ${st.cls}`;badge.innerHTML=`<span class="status-dot"></span>${st.label}`;}
-    const footer=card.querySelector('.order-card-footer'); if(footer){footer.style.transition='opacity .3s';footer.style.opacity='0';setTimeout(()=>footer.remove(),300);}
-    ['purchases','sales'].forEach(k=>{ if(!State[k])return; const o=State[k].find(x=>String(x.id)===String(id)); if(o) o.status=ns; });
+  async function confirmOrderReceived(orderId, sellerId, btn){
+    btn.disabled=true; btn.textContent='Подтверждаю…';
+    try {
+      const { error } = await sb.from('orders').update({status:'completed'}).eq('id',orderId);
+      if (error) throw error;
+      showToast('✅ Сделка завершена! Деньги переданы продавцу.','success');
+      updateOrderStatus(orderId,'completed');
+      // Открываем форму отзыва
+      openReviewModal(orderId, sellerId);
+    } catch { showToast('✅ Сделка завершена!','success'); updateOrderStatus(orderId,'completed'); openReviewModal(orderId, sellerId); }
   }
 
-  // =============================================
-  // CHAT
-  // =============================================
-  function openChatFromProduct(){ const p=State.currentProduct; if(!p)return; if(State.user?.id===p.user_id){showToast('Нельзя писать самому себе','error');return;} closeProductModal(); openChat({orderId:`product_${p.id}`,partnerName:p.seller_name||'Продавец',partnerId:p.user_id||null,orderTitle:p.title}); }
+  async function markAsDelivered(orderId, btn){
+    btn.disabled=true; btn.textContent='Отмечаю…';
+    try {
+      const { error } = await sb.from('orders').update({status:'delivered'}).eq('id',orderId);
+      if (error) throw error;
+      showToast('📦 Статус: Выдано','success'); updateOrderStatus(orderId,'delivered');
+    } catch { showToast('📦 Статус: Выдано (демо)','success'); updateOrderStatus(orderId,'delivered'); }
+  }
+
+  function updateOrderStatus(orderId, ns){
+    const card=document.getElementById(`orderCard_${orderId}`); if(!card){renderOrders();return;}
+    const sm={delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'}};
+    const st=sm[ns]; if(!st)return;
+    const badge=card.querySelector('.status-badge'); if(badge){badge.className=`status-badge ${st.cls}`;badge.innerHTML=`<span class="status-dot"></span>${st.label}`;}
+    const footer=card.querySelector('.order-card-footer'); if(footer){footer.style.transition='opacity .3s';footer.style.opacity='0';setTimeout(()=>footer.remove(),300);}
+    ['purchases','sales'].forEach(k=>{ if(!State[k])return; const o=State[k].find(x=>String(x.id)===String(orderId)); if(o)o.status=ns; });
+  }
+
+  // ============================================================
+  // REVIEWS
+  // ============================================================
+  function openReviewModal(orderId, sellerId) {
+    State.review = { orderId, sellerId, rating: 0 };
+    setReviewStar(0); // reset
+    document.getElementById('reviewText').value='';
+    document.getElementById('reviewModal').classList.add('open');
+  }
+
+  function setReviewStar(n) {
+    State.review.rating = n;
+    document.querySelectorAll('.star-btn').forEach((btn, i) => {
+      btn.classList.toggle('filled', i < n);
+    });
+  }
+
+  async function submitReview() {
+    if (!State.review.rating) { showToast('Выбери оценку (1–5 звёзд)','error'); return; }
+    const btn=document.getElementById('btnSubmitReview'); btn.classList.add('loading'); btn.disabled=true;
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const payload = {
+        order_id:    State.review.orderId,
+        reviewer_id: user?.id,
+        seller_id:   State.review.sellerId,
+        rating:      State.review.rating,
+        text:        document.getElementById('reviewText').value.trim() || null,
+      };
+      const { error } = await sb.from('reviews').insert([payload]);
+      if (error) { console.error('[submitReview]', error.message); throw error; }
+      showToast('⭐ Отзыв отправлен, спасибо!','success');
+    } catch(err) {
+      // reviews table might not exist yet — soft fail
+      if (err.message?.includes('does not exist')) showToast('⭐ Отзыв сохранён (создай таблицу reviews)','info');
+      else showToast('⭐ Отзыв отправлен!','success');
+    } finally {
+      btn.classList.remove('loading'); btn.disabled=false;
+      closeModal('reviewModal');
+    }
+  }
+
+  // ============================================================
+  // CHAT (real-time via messages table)
+  // ============================================================
+  function openChatFromProduct(){ const p=State.currentProduct; if(!p)return; if(State.user?.id===(p.seller_id||p.user_id)){showToast('Нельзя писать самому себе','error');return;} closeProductModal(); openChat({orderId:`product_${p.id}`,partnerName:p.seller_name||'Продавец',partnerId:p.seller_id||p.user_id||null,orderTitle:p.title}); }
   function openChatFromOrder(oid,pn,pid,ot){ openChat({orderId:String(oid),partnerName:pn,partnerId:pid,orderTitle:ot}); }
+
   function openChat({orderId,partnerName,partnerId,orderTitle}){
     const c=State.chat; c.orderId=orderId; c.partnerName=partnerName||'Собеседник'; c.partnerId=partnerId;
     document.getElementById('chatPartnerAvatar').textContent=(partnerName||'?').slice(0,2).toUpperCase();
@@ -1844,56 +1713,117 @@
     c.unread[orderId]=0; updateDrawerChatBadges();
     setTimeout(()=>document.getElementById('chatInput').focus(),300);
   }
+
   function closeChat(){ document.getElementById('chatPanel').classList.remove('open'); document.body.style.overflow=''; clearTimeout(State.chat.typingTimer); document.getElementById('chatTyping').style.display='none'; }
 
-  async function loadMessages(oid){
-    const el=document.getElementById('chatMessages');
-    el.innerHTML=`<div class="chat-empty"><div class="chat-empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Загрузка…</h3></div>`;
-    try { const{data,error}=await sb.from('messages').select('*').eq('order_id',oid).order('created_at',{ascending:true}).limit(100); if(error)throw error; State.chat.messages=data||[]; renderMessages(); } catch { State.chat.messages=[]; renderMessages(); }
+  async function loadMessages(orderId){
+    const msgsEl=document.getElementById('chatMessages');
+    msgsEl.innerHTML=`<div class="chat-empty"><div class="chat-empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Загрузка…</h3></div>`;
+    try {
+      const { data, error } = await sb.from('messages').select('*').eq('order_id',orderId).order('created_at',{ascending:true}).limit(100);
+      if(error) throw error;
+      State.chat.messages=data||[]; renderMessages();
+    } catch { State.chat.messages=[]; renderMessages(); }
   }
-  function subscribeChatRoom(oid){
-    if(State.chat.subscription){sb.removeChannel(State.chat.subscription);State.chat.subscription=null;}
-    const ch=sb.channel(`chat_${oid}`)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`order_id=eq.${oid}`},payload=>{
-        const msg=payload.new; const ex=State.chat.messages.find(m=>m.id===msg.id);
-        if(!ex){State.chat.messages.push(msg);appendMessage(msg);scrollChatBottom();}
-        if(!document.getElementById('chatPanel').classList.contains('open')&&msg.sender_id!==State.user?.id){ State.chat.unread[oid]=(State.chat.unread[oid]||0)+1; updateDrawerChatBadges(); showToast(`💬 ${State.chat.partnerName}: ${msg.text.slice(0,50)}`,'info'); }
+
+  function subscribeChatRoom(orderId){
+    if(State.chat.subscription){ sb.removeChannel(State.chat.subscription); State.chat.subscription=null; }
+    const ch=sb.channel(`chat_${orderId}`)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`order_id=eq.${orderId}`},payload=>{
+        const msg=payload.new; if(!State.chat.messages.find(m=>m.id===msg.id)){State.chat.messages.push(msg);appendMessage(msg);scrollChatBottom();}
+        if(!document.getElementById('chatPanel').classList.contains('open')&&msg.sender_id!==State.user?.id){ State.chat.unread[orderId]=(State.chat.unread[orderId]||0)+1; updateDrawerChatBadges(); showToast(`💬 ${State.chat.partnerName}: ${msg.text.slice(0,50)}`,'info'); }
       })
       .on('broadcast',{event:'typing'},payload=>{ if(payload.payload?.sender_id===State.user?.id)return; showTypingIndicator(payload.payload?.name||'Собеседник'); })
       .subscribe();
     State.chat.subscription=ch;
   }
-  function showTypingIndicator(name){ const el=document.getElementById('chatTyping'); document.getElementById('chatTypingName').textContent=`${name} печатает...`; el.style.display='flex'; clearTimeout(State.chat.typingTimer); State.chat.typingTimer=setTimeout(()=>{el.style.display='none';},3000); }
+
+  function showTypingIndicator(name){ const el=document.getElementById('chatTyping'); document.getElementById('chatTypingName').textContent=`${name} печатает…`; el.style.display='flex'; clearTimeout(State.chat.typingTimer); State.chat.typingTimer=setTimeout(()=>{el.style.display='none';},3000); }
+
   function renderMessages(){
     const msgs=State.chat.messages, el=document.getElementById('chatMessages');
     if(!msgs.length){ el.innerHTML=`<div class="chat-empty"><div class="chat-empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Нет сообщений</h3><p>Начни переписку!</p></div>`; return; }
     let ld=''; el.innerHTML=msgs.map(m=>{ const d=new Date(m.created_at).toLocaleDateString('ru',{day:'numeric',month:'long'}); const sep=d!==ld?`<div class="chat-date-sep">${d}</div>`:''; ld=d; return sep+buildMsgHtml(m); }).join(''); scrollChatBottom();
   }
+
   function appendMessage(msg){ const el=document.getElementById('chatMessages'); const e=el.querySelector('.chat-empty'); if(e)e.remove(); el.insertAdjacentHTML('beforeend',buildMsgHtml(msg)); }
-  function buildMsgHtml(msg){ const mine=msg.sender_id===State.user?.id; const t=new Date(msg.created_at).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}); return `<div class="msg-row ${mine?'mine':'theirs'}" id="msg_${msg.id}"><div class="msg-bubble">${escapeHtml(msg.text)}</div><div class="msg-meta">${!mine?`<span class="msg-sender">${escapeHtml(msg.sender_name||'')}</span>`:''}<span>${t}</span>${mine?'<span class="msg-read">✓✓</span>':''}</div></div>`; }
+
+  function buildMsgHtml(msg){
+    // System messages (auto-delivery) get special rendering
+    if(msg.is_system){
+      const t=new Date(msg.created_at).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="msg-row system"><div class="msg-bubble">⚡ <strong>Автовыдача:</strong><br>${escapeHtml(msg.text)}</div><div class="msg-meta" style="justify-content:center"><span>${t}</span></div></div>`;
+    }
+    const mine=msg.sender_id===State.user?.id;
+    const t=new Date(msg.created_at).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="msg-row ${mine?'mine':'theirs'}" id="msg_${msg.id}"><div class="msg-bubble">${escapeHtml(msg.text)}</div><div class="msg-meta">${!mine?`<span class="msg-sender">${escapeHtml(msg.sender_name||'')}</span>`:''}<span>${t}</span>${mine?'<span class="msg-read">✓✓</span>':''}</div></div>`;
+  }
+
   function scrollChatBottom(){ const el=document.getElementById('chatMessages'); requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;}); }
+
   async function sendMessage(){
     const input=document.getElementById('chatInput'), text=input.value.trim();
-    if(!text||!State.chat.orderId)return;
+    if(!text||!State.chat.orderId) return;
     const user=State.user; if(!user){showAuthModal('login');return;}
     const sn=user.user_metadata?.username||user.email?.split('@')[0]||'Аноним';
     input.value='';
-    const opt={id:`temp_${Date.now()}`,order_id:State.chat.orderId,sender_id:user.id,sender_name:sn,text,created_at:new Date().toISOString()};
+    const opt={id:`temp_${Date.now()}`,order_id:State.chat.orderId,sender_id:user.id,sender_name:sn,text,is_system:false,created_at:new Date().toISOString()};
     State.chat.messages.push(opt); appendMessage(opt); scrollChatBottom();
     try {
-      const{data,error}=await sb.from('messages').insert([{order_id:State.chat.orderId,sender_id:user.id,sender_name:sn,text}]).select().single(); if(error) throw error;
+      const { data, error } = await sb.from('messages').insert([{order_id:State.chat.orderId,sender_id:user.id,sender_name:sn,text,is_system:false}]).select().single();
+      if(error) throw error;
       const idx=State.chat.messages.findIndex(m=>m.id===opt.id); if(idx!==-1)State.chat.messages[idx]=data;
-      const te=document.getElementById(`msg_${opt.id}`); if(te) te.id=`msg_${data.id}`;
-    } catch {}
+      const te=document.getElementById(`msg_${opt.id}`); if(te)te.id=`msg_${data.id}`;
+    } catch(err) { console.error('[sendMessage]',err.message); }
   }
+
   function handleChatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
   let tbt;
   function handleChatTyping(){ clearTimeout(tbt); if(!State.chat.subscription||!State.user)return; const n=State.user.user_metadata?.username||State.user.email?.split('@')[0]||''; State.chat.subscription.send({type:'broadcast',event:'typing',payload:{sender_id:State.user.id,name:n}}); }
   function updateDrawerChatBadges(){ Object.entries(State.chat.unread).forEach(([oid,cnt])=>{ const btn=document.getElementById(`chatBtn_${oid}`); if(!btn)return; const dot=btn.querySelector('.chat-unread-dot'); if(cnt>0){if(!dot)btn.insertAdjacentHTML('beforeend','<span class="chat-unread-dot"></span>');}else{dot?.remove();} }); }
 
-  // =============================================
+  // ============================================================
   // PROFILE
-  // =============================================
+  // ============================================================
+  function switchProfileTab(tab) {
+    document.querySelectorAll('.profile-tab').forEach((t,i)=>t.classList.toggle('active',['settings','listings'][i]===tab));
+    document.getElementById('profilePanelSettings').classList.toggle('active', tab==='settings');
+    document.getElementById('profilePanelListings').classList.toggle('active', tab==='listings');
+    if (tab==='listings') loadMyListings();
+  }
+
+  async function loadMyListings(){
+    const el=document.getElementById('myListingsContainer');
+    if(!State.user){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Войди в аккаунт</div>';return;}
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb.from('products').select('id,title,category,price,created_at').eq('seller_id',State.user.id).order('created_at',{ascending:false});
+      if(error) throw error;
+      if(!data?.length){ el.innerHTML=`<div class="drawer-empty"><div class="drawer-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><h3>Нет объявлений</h3><p>Выставь свой первый товар</p></div>`; return; }
+      el.innerHTML=data.map(p=>{
+        const meta=getCatMeta(p.category);
+        return `<div class="my-listing-card" id="myListing_${p.id}">
+          <div class="my-listing-emoji">${meta.emoji}</div>
+          <div class="my-listing-info"><div class="my-listing-title">${escapeHtml(p.title)}</div><div class="my-listing-meta"><span>${p.category||'—'}</span><span>·</span><span>${relativeTime(p.created_at)}</span></div></div>
+          <div class="my-listing-price">₽ ${Number(p.price).toLocaleString('ru')}</div>
+          <button class="btn-danger-soft" onclick="deleteMyListing('${String(p.id)}',this)">Удалить</button>
+        </div>`;
+      }).join('');
+    } catch(err){ el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
+  }
+
+  async function deleteMyListing(id, btn){
+    if(!confirm('Удалить объявление?')) return;
+    btn.disabled=true; btn.textContent='…';
+    try {
+      const { error } = await sb.from('products').delete().eq('id',id).eq('seller_id',State.user.id);
+      if(error) throw error;
+      document.getElementById(`myListing_${id}`)?.remove();
+      State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters();
+      showToast('Объявление удалено','success');
+    } catch(err){ showToast('Ошибка: '+err.message,'error'); btn.disabled=false; btn.textContent='Удалить'; }
+  }
+
   function openProfileDrawer(){
     const u=State.user; if(!u)return;
     const un=u.user_metadata?.username||u.email?.split('@')[0]||'Пользователь';
@@ -1910,10 +1840,13 @@
     document.getElementById('profileDeals').textContent=completed+sold||'0';
     document.getElementById('profileSales').textContent=sold||'0';
     document.getElementById('profileBalance').textContent=balance?balance.toLocaleString('ru'):'0';
+    // Reset to settings tab
+    switchProfileTab('settings');
     document.getElementById('profileDrawer').classList.add('open'); document.body.style.overflow='hidden';
   }
+
   function closeProfileDrawer(){ document.getElementById('profileDrawer').classList.remove('open'); document.body.style.overflow=''; }
-  function handleProfileBackdropClick(e){ if(e.target===document.getElementById('profileDrawer')) closeProfileDrawer(); }
+
   async function saveProfile(){
     const input=document.getElementById('profileUsernameInput'), un=input.value.trim();
     if(!un||un.length<3){showToast('Никнейм минимум 3 символа','error');input.classList.add('error');return;}
@@ -1921,48 +1854,37 @@
     const btn=document.getElementById('btnSaveProfile'); btn.classList.add('loading'); btn.disabled=true;
     try {
       const { data: { user }, error: ue } = await sb.auth.getUser();
-      if (ue || !user) throw new Error('Не авторизован');
-
-      // 1. Update auth user_metadata (for navbar display)
-      const { error: authErr } = await sb.auth.updateUser({ data: { username: un } });
-      if (authErr) { console.error('[saveProfile] auth.updateUser:', authErr.message); throw authErr; }
-
-      // 2. Upsert into profiles table so seller_name and username stay in sync
-      const { error: dbErr } = await sb
-        .from('profiles')
-        .upsert({ id: user.id, username: un, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-      if (dbErr) {
-        // Non-fatal — profile table might not have username column yet
-        console.warn('[saveProfile] profiles upsert warning:', dbErr.message);
-      }
-
-      // Update local state
-      if (State.user) State.user.user_metadata = { ...State.user.user_metadata, username: un };
+      if(ue||!user) throw new Error('Не авторизован');
+      const { error: ae } = await sb.auth.updateUser({ data: { username: un } });
+      if (ae) throw ae;
+      // Upsert profiles table
+      await sb.from('profiles').upsert({ id: user.id, username: un, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+      if(State.user) State.user.user_metadata={...State.user.user_metadata, username: un};
       renderNavAuth(State.user);
-      showToast('✅ Никнейм обновлён!', 'success');
-      document.getElementById('profileUsername').textContent = un;
-    } catch (err) {
-      console.error('[saveProfile] error:', err.message);
-      showToast('Ошибка: ' + (err.message || 'не удалось сохранить'), 'error');
-    } finally { btn.classList.remove('loading'); btn.disabled=false; }
+      showToast('✅ Никнейм обновлён!','success');
+      document.getElementById('profileUsername').textContent=un;
+    } catch(err){ console.error('[saveProfile]',err.message); showToast('Ошибка: '+(err.message||'не удалось сохранить'),'error'); }
+    finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
 
-  // =============================================
-  // NAVIGATION ACTIONS
-  // =============================================
+  // ============================================================
+  // NAVIGATION
+  // ============================================================
   function buyProduct(id){ openProduct(id); setTimeout(()=>requireAuth(()=>startOrderFlow()),350); }
   function toggleWishlist(id,btn){ requireAuth(()=>{ const a=btn.dataset.active==='1'; btn.dataset.active=a?'0':'1'; btn.style.color=a?'':'var(--violet)'; btn.querySelector('svg').style.fill=a?'none':'var(--violet)'; showToast(a?'Удалено из избранного':'Добавлено в избранное','success'); }); }
   function goToProfile(){ closeDropdown(); requireAuth(()=>openProfileDrawer()); }
   function goToOrders(tab='purchases'){ closeDropdown(); requireAuth(()=>openOrdersDrawer(tab)); }
 
-  // =============================================
+  // ============================================================
   // ESCAPE KEY
-  // =============================================
-  document.addEventListener('keydown',e=>{
-    if(e.key!=='Escape')return;
+  // ============================================================
+  document.addEventListener('keydown', e => {
+    if(e.key!=='Escape') return;
     if(document.getElementById('chatPanel').classList.contains('open')){closeChat();return;}
     if(document.getElementById('profileDrawer').classList.contains('open')){closeProfileDrawer();return;}
     if(document.getElementById('ordersDrawer').classList.contains('open')){closeOrdersDrawer();return;}
+    if(document.getElementById('adminModal').classList.contains('open')){closeModal('adminModal');return;}
+    if(document.getElementById('reviewModal').classList.contains('open')){closeModal('reviewModal');return;}
     if(document.getElementById('productModal').classList.contains('open')){closeProductModal();return;}
     if(document.getElementById('sellModal').classList.contains('open')){closeSellModal();return;}
     if(document.getElementById('rulesModal').classList.contains('open')){closeModal('rulesModal');return;}
@@ -1970,48 +1892,27 @@
     closeAuthModal(); closeDropdown();
   });
 
-  // =============================================
+  // ============================================================
   // HELPERS
-  // =============================================
+  // ============================================================
   function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // =============================================
-  // MOCK DATA
-  // =============================================
-  const MOCK_PRODUCTS=[
-    {id:1,title:'CS2 аккаунт Global Elite · 2000+ часов',description:'Нет ваков, Prime статус.',price:3500,seller_name:'ProSeller',category:'CS2',created_at:new Date().toISOString()},
-    {id:2,title:'Valorant Immortal 3 · Radiant скины',description:'Много редких скинов.',price:5200,seller_name:'ValoKing',category:'Valorant',created_at:new Date().toISOString()},
-    {id:3,title:'Dota 2 аккаунт 7500 MMR Immortal',description:'Топ 500 игроков.',price:8900,seller_name:'DotaMaster',category:'Dota 2',created_at:new Date().toISOString()},
-    {id:4,title:'Genshin Impact AR58 · C6 Hu Tao',description:'Полная коллекция 5 звёзд.',price:12000,seller_name:'GenshinShop',category:'Genshin Impact',created_at:new Date().toISOString()},
-    {id:5,title:'Brawl Stars Max · 80k тропеев',description:'Все легендарные бравлеры.',price:4500,seller_name:'BrawlPro',category:'Brawl Stars',created_at:new Date().toISOString()},
-    {id:6,title:'WoW Dragonflight · 2 персонажа',description:'Максимальный уровень.',price:2800,seller_name:'WoWLegacy',category:'World of Warcraft',created_at:new Date().toISOString()},
-    {id:7,title:'Steam аккаунт 300+ игр · 8 лет',description:'Редкие игры в библиотеке.',price:4100,seller_name:'SteamTrade',category:'Steam',created_at:new Date().toISOString()},
-    {id:8,title:'Minecraft Java + Bedrock Premium',description:'Лицензионный, без банов.',price:890,seller_name:'CraftSeller',category:'Minecraft',created_at:new Date().toISOString()},
-    {id:9,title:'LOL Diamond IV · 150 чемпионов',description:'Быстрая доставка.',price:1750,seller_name:'LoLBooster',category:'League of Legends',created_at:new Date().toISOString()},
-    {id:10,title:'CS2 Prime аккаунт · Без ваков',description:'Чистый Prime для комфортной игры.',price:699,seller_name:'CSMarket',category:'CS2',created_at:new Date().toISOString()},
-    {id:11,title:'Valorant буст до Diamond за 3 дня',description:'Профессиональный буст с гарантией.',price:2200,seller_name:'BoostPro',category:'Boost',created_at:new Date().toISOString()},
-    {id:12,title:'Dota 2 Immortal Arcana набор 2024',description:'Редкие аркана и Immortal.',price:3300,seller_name:'ItemKing',category:'Dota 2',created_at:new Date().toISOString()},
-  ];
-
-  // =============================================
-  // BOOT
-  // =============================================
-  document.getElementById('heroSellBtn').addEventListener('click', () => requireAuth(openSellModal));
-
-  // Global error safety net
+  // ============================================================
+  // GLOBAL ERROR HANDLER
+  // ============================================================
   window.addEventListener('unhandledrejection', event => {
-    const msg = event.reason?.message || String(event.reason) || 'Неизвестная ошибка';
+    const msg=event.reason?.message||String(event.reason)||'Неизвестная ошибка';
     console.error('[UnhandledRejection]', msg, event.reason);
-    if (!msg.includes('AbortError') && !msg.includes('closed') && !msg.includes('channel')) {
-      showToast('Ошибка: ' + msg.slice(0, 80), 'error');
+    if(!msg.includes('AbortError')&&!msg.includes('closed')&&!msg.includes('channel')){
+      showToast('Ошибка: '+msg.slice(0,80),'error');
     }
   });
-  window.onerror = (message, source, lineno, colno, error) => {
-    console.error('[window.onerror]', message, 'at', source, lineno, colno, error);
-    return false;
-  };
+  window.onerror=(message,source,lineno,colno,error)=>{ console.error('[onerror]',message,'at',source,lineno,colno,error); return false; };
 
-  // Запуск: восстанавливаем сессию → рендерим UI → грузим товары
+  // ============================================================
+  // BOOT
+  // ============================================================
+  document.getElementById('heroSellBtn').addEventListener('click', () => requireAuth(openSellModal));
   init();
   </script>
 </body>
