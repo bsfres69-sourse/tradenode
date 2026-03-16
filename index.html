@@ -800,11 +800,13 @@
       <div class="modal-header"><div class="modal-logo"><div class="modal-logo-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="modal-logo-text">Админ-панель</span></div></div>
       <div class="modal-body">
         <div class="admin-tabs">
-          <button class="admin-tab active" id="adminTab1" onclick="switchAdminTab('users')">👥 Пользователи</button>
-          <button class="admin-tab" id="adminTab2" onclick="switchAdminTab('products')">📦 Все товары</button>
+          <button class="admin-tab active" id="adminTab1" onclick="switchAdminTab('users')">👥 Юзеры</button>
+          <button class="admin-tab" id="adminTab2" onclick="switchAdminTab('products')">📦 Товары</button>
+          <button class="admin-tab" id="adminTab3" onclick="switchAdminTab('chats')">💬 Чаты</button>
         </div>
         <div class="admin-panel active" id="adminPanelUsers"><div id="adminUsersList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
         <div class="admin-panel" id="adminPanelProducts"><div id="adminProductsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
+        <div class="admin-panel" id="adminPanelChats"><div id="adminChatsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
       </div>
     </div>
   </div>
@@ -904,7 +906,7 @@
           <div id="pdBuyView">
             <div class="pd-price-block"><div class="pd-price-label">Цена</div><div class="pd-price-value"><span>₽</span><span id="pdPrice">—</span></div></div>
             <div class="pd-seller-card">
-              <div class="pd-seller-row"><div class="pd-seller-avatar" id="pdSellerAvatar">?</div><div class="pd-seller-info"><div class="pd-seller-name" id="pdSellerName">—</div><div class="pd-seller-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Проверен</div></div></div>
+              <div class="pd-seller-row"><div class="pd-seller-avatar" id="pdSellerAvatar">?</div><div class="pd-seller-info"><div class="pd-seller-name" id="pdSellerName">—</div><div class="pd-seller-badge" id="pdSellerBadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Проверен</div></div></div>
               <div class="pd-seller-stats"><div class="pd-stat"><div class="pd-stat-val" id="pdSellerRating">4.9</div><div class="pd-stat-lbl">Рейтинг</div></div><div class="pd-stat"><div class="pd-stat-val" id="pdSellerDeals">—</div><div class="pd-stat-lbl">Сделок</div></div></div>
             </div>
             <button class="btn-buy-now" onclick="startOrderFlow()" id="btnBuyNow"><span class="btn-submit-text" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Оплатить</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
@@ -1006,7 +1008,7 @@
   // STATE
   // ============================================================
   const State = {
-    user: null, userRole: 'user',
+    user: null, userRole: 'user', isVerified: false,
     allProducts: [], activeCategory: 'all', searchQuery: '',
     currentProduct: null,
     orders: [], purchases: [], sales: [], orderTab: 'purchases',
@@ -1050,19 +1052,51 @@
   async function fetchUserRole(uid) {
     try {
       const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000));
-      const query   = sb.from('profiles').select('role').eq('id', uid).single();
+      const query   = sb.from('profiles')
+        .select('role,is_verified,ban_until,ban_reason')
+        .eq('id', uid).single();
       const { data } = await Promise.race([query, timeout]);
       const role = data?.role || 'user';
-      // Заблокированный пользователь — принудительно выходим
-      if (role === 'banned') {
-        console.warn('[auth] banned user, signing out');
+
+      // ── Проверка активного бана (по роли ИЛИ по сроку) ──────
+      const isBannedByRole  = role === 'banned';
+      const isBannedByTimer = data?.ban_until && new Date(data.ban_until) > new Date();
+      if (isBannedByRole || isBannedByTimer) {
+        console.warn('[auth] banned user — signing out');
         await sb.auth.signOut();
-        showToast('Ваш аккаунт заблокирован. Обратитесь в поддержку @Phant0mNight', 'error');
-        State.userRole = 'banned';
+        const until  = data?.ban_until
+          ? new Date(data.ban_until).toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})
+          : 'бессрочно';
+        const reason = data?.ban_reason || 'Нарушение правил сервиса';
+        showBanScreen(until, reason);
+        State.userRole   = 'banned';
+        State.isVerified = false;
         return;
       }
-      State.userRole = role;
-    } catch { State.userRole = 'user'; }
+      State.userRole   = role;
+      State.isVerified = data?.is_verified || false;
+    } catch { State.userRole = 'user'; State.isVerified = false; }
+  }
+
+  // Полноэкранный блок бана — заменяет весь UI
+  function showBanScreen(until, reason) {
+    document.getElementById('banScreen')?.remove();
+    const div = document.createElement('div');
+    div.id = 'banScreen';
+    div.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#080c12;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center';
+    div.innerHTML = `
+      <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:32px">🚫</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#f0f4ff;margin-bottom:12px">Аккаунт заблокирован</h2>
+      <p style="font-size:15px;color:#8892a4;max-width:420px;line-height:1.8">
+        Вы забанены до <strong style="color:#f0f4ff">${until}</strong><br>
+        по причине: <strong style="color:#ef4444">${escapeHtml(reason)}</strong>
+      </p>
+      <p style="font-size:13px;color:#4a5568;margin-top:20px">
+        Связь с поддержкой:
+        <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener"
+           style="color:#a855f7;text-decoration:none;font-weight:600">@Phant0mNight</a>
+      </p>`;
+    document.body.appendChild(div);
   }
 
   function isAdmin() { return ADMIN_ROLES.includes(State.userRole); }
@@ -1351,12 +1385,13 @@
   }
 
   function switchAdminTab(tab) {
-    document.getElementById('adminTab1').classList.toggle('active', tab==='users');
-    document.getElementById('adminTab2').classList.toggle('active', tab==='products');
-    document.getElementById('adminPanelUsers').classList.toggle('active', tab==='users');
-    document.getElementById('adminPanelProducts').classList.toggle('active', tab==='products');
-    if (tab==='users') loadAdminUsers();
-    else loadAdminProducts();
+    ['users','products','chats'].forEach((t,i) => {
+      document.getElementById(`adminTab${i+1}`).classList.toggle('active', t===tab);
+      document.getElementById(`adminPanel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.toggle('active', t===tab);
+    });
+    if (tab==='users')    loadAdminUsers();
+    else if (tab==='products') loadAdminProducts();
+    else if (tab==='chats')    loadAdminChats();
   }
 
   async function loadAdminUsers() {
@@ -1365,51 +1400,202 @@
     try {
       const { data, error } = await sb
         .from('profiles')
-        .select('id,username,role,balance,created_at')
+        .select('id,username,role,balance,is_verified,last_seen,ban_until,ban_reason,created_at')
         .order('created_at',{ascending:false})
         .limit(100);
       if (error) throw error;
       if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Пользователей нет</div>'; return; }
-      el.innerHTML=data.map(u=>{
-        const isBanned = u.role === 'banned';
-        const isMe = u.id === State.user?.id;
-        const banBtn = isMe ? '' : `
-          <button class="btn-danger-soft" style="${isBanned?'background:var(--emerald-glow);color:var(--emerald);border-color:rgba(16,185,129,.3)':''}"
-            onclick="banUser('${u.id}','${isBanned?'user':'banned'}',this)">
-            ${isBanned ? '✅ Разбан' : '🚫 Бан'}
-          </button>`;
-        return `<div class="admin-user-row" id="adminUser_${u.id}">
-          <div class="admin-user-avatar" style="${isBanned?'background:var(--danger)':''}">${(u.username||'?').slice(0,2).toUpperCase()}</div>
-          <div class="admin-user-info">
-            <div class="admin-user-name" style="${isBanned?'color:var(--danger);text-decoration:line-through':''}">${escapeHtml(u.username||'—')}</div>
-            <div class="admin-user-email">id: ${escapeHtml(u.id.slice(0,18))}… · баланс: ${Number(u.balance||0).toLocaleString('ru')} ₽</div>
+
+      el.innerHTML = data.map(u => {
+        const isBanned   = u.role === 'banned' || (u.ban_until && new Date(u.ban_until) > new Date());
+        const isVerified = u.is_verified;
+        const isMe       = u.id === State.user?.id;
+        const isOnline   = u.last_seen && (Date.now() - new Date(u.last_seen).getTime()) < 5*60*1000;
+        const onlineDot  = isOnline
+          ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--emerald);display:inline-block;margin-right:4px;vertical-align:middle"></span>`
+          : '';
+
+        return `<div class="admin-user-row" id="adminUser_${u.id}" style="${isBanned?'opacity:.6':''}">
+          <div class="admin-user-avatar" style="${isBanned?'background:var(--danger)':isVerified?'background:linear-gradient(135deg,#3b82f6,#1d4ed8)':''}">${(u.username||'?').slice(0,2).toUpperCase()}</div>
+          <div class="admin-user-info" style="flex:1;min-width:0">
+            <div class="admin-user-name" style="${isBanned?'color:var(--danger);text-decoration:line-through':''}">
+              ${onlineDot}${escapeHtml(u.username||'—')}
+              ${isVerified?'<svg style="display:inline;vertical-align:-2px;margin-left:3px" width="13" height="13" viewBox="0 0 24 24" fill="#3b82f6" stroke="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/><polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+            </div>
+            <div class="admin-user-email" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="role-badge role-${u.role||'user'}" style="font-size:10px">${u.role||'user'}</span>
+              <span style="font-size:11px">💰 ${Number(u.balance||0).toLocaleString('ru')} ₽</span>
+              ${isBanned&&u.ban_until?`<span style="font-size:11px;color:var(--danger)">до ${new Date(u.ban_until).toLocaleDateString('ru')}</span>`:''}
+            </div>
           </div>
-          <span class="role-badge role-${u.role||'user'}" style="font-size:10px;margin-right:4px">${u.role||'user'}</span>
-          ${banBtn}
+          ${isMe?'<span style="font-size:11px;color:var(--text-muted)">это вы</span>':`
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+            <!-- Balance edit -->
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="number" id="balInput_${u.id}" value="${u.balance||0}" min="0"
+                style="width:80px;background:var(--bg-overlay);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 7px;font-size:12px;color:var(--text-primary);outline:none" />
+              <button class="btn-danger-soft" style="background:var(--violet-glow);color:var(--violet);border-color:rgba(168,85,247,.3);font-size:11px;padding:3px 8px;min-height:0"
+                onclick="adminSetBalance('${u.id}',this)">Баланс</button>
+            </div>
+            <!-- Actions -->
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="btn-danger-soft" style="font-size:11px;padding:3px 8px;min-height:0;${isVerified?'background:var(--violet-glow);color:var(--violet);border-color:rgba(168,85,247,.3)':''}"
+                onclick="adminToggleVerify('${u.id}',${isVerified},this)">${isVerified?'✓ Верифицирован':'Верифицировать'}</button>
+              <button class="btn-danger-soft" style="font-size:11px;padding:3px 8px;min-height:0;${isBanned?'background:var(--emerald-glow);color:var(--emerald);border-color:rgba(16,185,129,.3)':''}"
+                onclick="adminBanUser('${u.id}',${isBanned},this)">${isBanned?'✅ Разбан':'🚫 Бан'}</button>
+            </div>
+          </div>`}
         </div>`;
       }).join('');
     } catch(err) { el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
   }
 
-  // Бан / разбан пользователя — меняет role в таблице profiles
-  async function banUser(userId, newRole, btn) {
-    const action = newRole === 'banned' ? 'забанить' : 'разбанить';
-    if (!confirm(`Вы уверены, что хотите ${action} этого пользователя?`)) return;
+  // ── Изменить баланс пользователя
+  async function adminSetBalance(userId, btn) {
+    const input = document.getElementById(`balInput_${userId}`);
+    const amount = Number(input?.value);
+    if (isNaN(amount) || amount < 0) { showToast('Введи корректный баланс','error'); return; }
     btn.disabled = true;
     try {
-      const { error } = await sb
-        .from('profiles')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
+      const { error } = await sb.from('profiles')
+        .update({ balance: amount, updated_at: new Date().toISOString() })
         .eq('id', userId);
       if (error) throw error;
-      showToast(newRole === 'banned' ? '🚫 Пользователь заблокирован' : '✅ Пользователь разблокирован', 'success');
-      // Reload the list to show updated state
+      showToast(`💰 Баланс обновлён: ${amount.toLocaleString('ru')} ₽`, 'success');
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); }
+    finally { btn.disabled = false; }
+  }
+
+  // ── Верификация / снятие верификации
+  async function adminToggleVerify(userId, currently, btn) {
+    btn.disabled = true;
+    try {
+      const { error } = await sb.from('profiles')
+        .update({ is_verified: !currently, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (error) throw error;
+      showToast(!currently ? '✅ Верификация выдана' : 'Верификация снята', 'success');
       await loadAdminUsers();
-    } catch(err) {
-      console.error('[banUser]', err.message);
-      showToast('Ошибка: ' + err.message, 'error');
-      btn.disabled = false;
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); btn.disabled=false; }
+  }
+
+  // ── Бан с причиной и сроком
+  async function adminBanUser(userId, currentlyBanned, btn) {
+    if (currentlyBanned) {
+      // Разбан — просто меняем роль обратно
+      if (!confirm('Разбанить пользователя?')) return;
+      btn.disabled = true;
+      try {
+        const { error } = await sb.from('profiles')
+          .update({ role: 'user', ban_until: null, ban_reason: null, updated_at: new Date().toISOString() })
+          .eq('id', userId);
+        if (error) throw error;
+        showToast('✅ Пользователь разблокирован', 'success');
+        await loadAdminUsers();
+      } catch(err) { showToast('Ошибка: '+err.message,'error'); btn.disabled=false; }
+      return;
     }
+
+    // Бан — показываем форму прямо в строке юзера
+    const row = document.getElementById(`adminUser_${userId}`);
+    if (!row) return;
+
+    // Avoid double-form
+    if (row.querySelector('.ban-form')) return;
+
+    const form = document.createElement('div');
+    form.className = 'ban-form';
+    form.style.cssText = 'grid-column:1/-1;padding:10px 0 4px;display:flex;flex-direction:column;gap:8px';
+    form.innerHTML = `
+      <div style="font-size:12px;font-weight:600;color:var(--danger)">Причина бана</div>
+      <input id="banReason_${userId}" type="text" placeholder="Спам, мошенничество, флуд…" maxlength="200"
+        style="background:var(--bg-overlay);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text-primary);outline:none;width:100%" />
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="font-size:12px;color:var(--text-secondary)">До:</label>
+        <input id="banUntil_${userId}" type="date" min="${new Date().toISOString().split('T')[0]}"
+          style="background:var(--bg-overlay);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text-primary);outline:none;flex:1" />
+        <label style="font-size:12px;color:var(--text-secondary)">или</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+          <input type="checkbox" id="banPerm_${userId}" onchange="document.getElementById('banUntil_${userId}').disabled=this.checked" />
+          Бессрочно
+        </label>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-danger-soft" onclick="submitBan('${userId}')" style="flex:1">🚫 Забанить</button>
+        <button style="flex:1;padding:7px;border-radius:var(--radius-sm);background:var(--bg-overlay);color:var(--text-secondary);font-size:12px;transition:var(--transition)" onclick="this.closest('.ban-form').remove()">Отмена</button>
+      </div>`;
+    row.appendChild(form);
+  }
+
+  async function submitBan(userId) {
+    const reason   = document.getElementById(`banReason_${userId}`)?.value.trim() || 'Нарушение правил';
+    const untilEl  = document.getElementById(`banUntil_${userId}`);
+    const isPerm   = document.getElementById(`banPerm_${userId}`)?.checked;
+    const banUntil = isPerm ? null : (untilEl?.value ? new Date(untilEl.value).toISOString() : null);
+
+    if (!isPerm && !banUntil) { showToast('Укажи срок бана или выбери «Бессрочно»','error'); return; }
+
+    try {
+      const { error } = await sb.from('profiles')
+        .update({
+          role:       'banned',
+          ban_reason: reason,
+          ban_until:  banUntil,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+      if (error) throw error;
+      showToast('🚫 Пользователь заблокирован', 'success');
+      await loadAdminUsers();
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); }
+  }
+
+  // ── Все чаты (последние диалоги)
+  async function loadAdminChats() {
+    const el = document.getElementById('adminChatsList');
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      // Get latest message per order_id
+      const { data, error } = await sb
+        .from('messages')
+        .select('id,order_id,sender_id,sender_name,text,created_at,is_system')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      if (!data?.length) {
+        el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Чатов нет</div>'; return;
+      }
+
+      // Deduplicate by order_id — keep most recent
+      const seen = new Set();
+      const convos = data.filter(m => { if(seen.has(m.order_id))return false; seen.add(m.order_id); return true; });
+
+      el.innerHTML = convos.map(m => {
+        const isAuto = m.is_system;
+        const preview = isAuto ? `⚡ ${m.text.slice(0,50)}` : m.text.slice(0,60);
+        const time = relativeTime(m.created_at);
+        return `<div style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;cursor:pointer;transition:var(--transition)"
+          onclick="adminOpenChat('${m.order_id}')"
+          onmouseover="this.style.borderColor='var(--border-hover)'"
+          onmouseout="this.style.borderColor='var(--border)'">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${(m.sender_name||'?').slice(0,2).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escapeHtml(m.sender_name||'Пользователь')}</div>
+            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${m.text.length>60?'…':''}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">order: ${m.order_id.slice(0,18)}…</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${time}</div>
+        </div>`;
+      }).join('');
+    } catch(err) {
+      el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // Admin opens a chat as moderator
+  function adminOpenChat(orderId) {
+    closeModal('adminModal');
+    openChat({ orderId, partnerName: 'Модератор 🛡️', partnerId: null, orderTitle: 'Просмотр как администратор' });
   }
 
   async function loadAdminProducts() {
@@ -1546,21 +1732,101 @@
     if(!p){showToast('Товар не найден','error');return;}
     State.currentProduct=p;
     const meta=getCatMeta(p.category), initials=(p.seller_name||'?').slice(0,2).toUpperCase();
-    const deals=Math.floor(Math.random()*180+20), rating=(Math.random()*.8+4.1).toFixed(1);
     document.getElementById('pdThumb').style.background=`linear-gradient(135deg,${meta.color}25 0%,${meta.color}08 100%)`;
     document.getElementById('pdThumbGlow').textContent=meta.emoji; document.getElementById('pdEmoji').textContent=meta.emoji;
     document.getElementById('pdCategory').textContent=p.category||'Другое'; document.getElementById('pdDateTag').textContent=relativeTime(p.created_at);
     document.getElementById('pdTitle').textContent=p.title; document.getElementById('pdRelTime').textContent=relativeTime(p.created_at);
     document.getElementById('pdSellerMeta').textContent=p.seller_name||'Аноним';
     const descEl=document.getElementById('pdDescription');
-    if(p.description?.trim()){descEl.textContent=p.description;descEl.classList.remove('empty');}else{descEl.textContent='Продавец не добавил описание.';descEl.classList.add('empty');}
+    if(p.description?.trim()){descEl.textContent=p.description;descEl.classList.remove('empty');}
+    else{descEl.textContent='Продавец не добавил описание.';descEl.classList.add('empty');}
     document.getElementById('pdPrice').textContent=Number(p.price).toLocaleString('ru');
-    document.getElementById('pdSellerAvatar').textContent=initials; document.getElementById('pdSellerName').textContent=p.seller_name||'Аноним';
-    document.getElementById('pdSellerRating').textContent=rating; document.getElementById('pdSellerDeals').textContent=deals;
+    document.getElementById('pdSellerAvatar').textContent=initials;
+
+    // Seller name with verified badge
+    const sellerNameEl = document.getElementById('pdSellerName');
+    sellerNameEl.innerHTML = escapeHtml(p.seller_name||'Аноним');
+
     // Show auto-delivery badge
-    const adBadge=document.getElementById('pdAutoDeliveryBadge'); if(adBadge) adBadge.style.display=p.auto_delivery?'inline-flex':'none';
+    const adBadge=document.getElementById('pdAutoDeliveryBadge');
+    if(adBadge) adBadge.style.display=p.auto_delivery?'inline-flex':'none';
+
+    // Placeholder stats while loading
+    document.getElementById('pdSellerRating').textContent = '…';
+    document.getElementById('pdSellerDeals').textContent  = '…';
+    document.getElementById('pdSellerBadge').innerHTML = '<span style="color:var(--text-muted);font-size:11px">загрузка…</span>';
+
     cancelOrderFlow(false);
-    document.getElementById('productModal').classList.add('open'); document.body.style.overflow='hidden';
+    document.getElementById('productModal').classList.add('open');
+    document.body.style.overflow='hidden';
+
+    // Async: load real seller stats from DB
+    if (p.seller_id) loadSellerStats(p.seller_id);
+  }
+
+  // ── Fetch real seller stats: online status, deal count, avg rating, verified
+  async function loadSellerStats(sellerId) {
+    try {
+      const [profileRes, ordersRes, reviewsRes] = await Promise.all([
+        sb.from('profiles')
+          .select('last_seen,is_verified')
+          .eq('id', sellerId)
+          .single(),
+        sb.from('orders')
+          .select('id', {count:'exact', head:true})
+          .eq('seller_id', sellerId)
+          .eq('status', 'completed'),
+        sb.from('reviews')
+          .select('rating')
+          .eq('seller_id', sellerId),
+      ]);
+
+      // Online status
+      const lastSeen = profileRes.data?.last_seen;
+      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5 * 60 * 1000;
+      const onlineHtml = isOnline
+        ? `<span style="color:var(--emerald);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--emerald);display:inline-block;animation:pulse 2s infinite"></span>Онлайн</span>`
+        : `<span style="color:var(--text-muted)">Офлайн${lastSeen?' · '+relativeTime(lastSeen):''}</span>`;
+
+      // Verified badge
+      const isVerified = profileRes.data?.is_verified;
+      const verBadge   = isVerified
+        ? `<svg style="display:inline;vertical-align:-2px;margin-left:4px" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#3b82f6"/><polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2"/></svg>`
+        : '';
+
+      // Deals count
+      const dealsCount = ordersRes.count ?? 0;
+
+      // Avg rating
+      const ratings   = reviewsRes.data?.map(r=>r.rating).filter(Boolean) || [];
+      const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : '—';
+
+      // Update seller card
+      const sellerNameEl = document.getElementById('pdSellerName');
+      if(sellerNameEl) sellerNameEl.innerHTML = escapeHtml(State.currentProduct?.seller_name||'Аноним') + verBadge;
+
+      const badgeEl = document.getElementById('pdSellerBadge');
+      if(badgeEl) badgeEl.innerHTML = onlineHtml;
+
+      const ratingEl = document.getElementById('pdSellerRating');
+      if(ratingEl) ratingEl.textContent = avgRating;
+
+      const dealsEl = document.getElementById('pdSellerDeals');
+      if(dealsEl) dealsEl.textContent = dealsCount;
+
+      // Update last_seen for current user on each product view
+      if (State.user) {
+        sb.from('profiles')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', State.user.id)
+          .then(() => {});
+      }
+
+    } catch(err) {
+      console.warn('[loadSellerStats]', err.message);
+      document.getElementById('pdSellerRating').textContent = '—';
+      document.getElementById('pdSellerDeals').textContent  = '—';
+    }
   }
 
   function closeProductModal(){ document.getElementById('productModal').classList.remove('open'); document.body.style.overflow=''; cancelOrderFlow(false); }
