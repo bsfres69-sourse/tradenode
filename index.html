@@ -968,6 +968,7 @@
         <div class="profile-tabs">
           <button class="profile-tab active" onclick="switchProfileTab('settings')">Настройки</button>
           <button class="profile-tab" onclick="switchProfileTab('listings')">Мои товары</button>
+          <button class="profile-tab" id="profileTabMessages" onclick="switchProfileTab('messages')">Сообщения</button>
         </div>
         <!-- Settings Panel -->
         <div class="profile-panel active" id="profilePanelSettings">
@@ -978,6 +979,10 @@
         <!-- My Listings Panel -->
         <div class="profile-panel" id="profilePanelListings">
           <div id="myListingsContainer"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div>
+        </div>
+        <!-- Messages Panel -->
+        <div class="profile-panel" id="profilePanelMessages">
+          <div id="myMessagesContainer"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div>
         </div>
       </div>
     </div>
@@ -1047,7 +1052,16 @@
       const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000));
       const query   = sb.from('profiles').select('role').eq('id', uid).single();
       const { data } = await Promise.race([query, timeout]);
-      State.userRole = data?.role || 'user';
+      const role = data?.role || 'user';
+      // Заблокированный пользователь — принудительно выходим
+      if (role === 'banned') {
+        console.warn('[auth] banned user, signing out');
+        await sb.auth.signOut();
+        showToast('Ваш аккаунт заблокирован. Обратитесь в поддержку @Phant0mNight', 'error');
+        State.userRole = 'banned';
+        return;
+      }
+      State.userRole = role;
     } catch { State.userRole = 'user'; }
   }
 
@@ -1349,16 +1363,53 @@
     const el=document.getElementById('adminUsersList');
     el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
     try {
-      const { data, error } = await sb.from('profiles').select('id,username,role,created_at').order('created_at',{ascending:false}).limit(50);
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id,username,role,balance,created_at')
+        .order('created_at',{ascending:false})
+        .limit(100);
       if (error) throw error;
       if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Пользователей нет</div>'; return; }
-      el.innerHTML=data.map(u=>`
-        <div class="admin-user-row">
-          <div class="admin-user-avatar">${(u.username||'?').slice(0,2).toUpperCase()}</div>
-          <div class="admin-user-info"><div class="admin-user-name">${escapeHtml(u.username||'—')}</div><div class="admin-user-email">${escapeHtml(u.id.slice(0,18)+'…')}</div></div>
-          <span class="role-badge role-${u.role||'user'}" style="font-size:10px">${u.role||'user'}</span>
-        </div>`).join('');
+      el.innerHTML=data.map(u=>{
+        const isBanned = u.role === 'banned';
+        const isMe = u.id === State.user?.id;
+        const banBtn = isMe ? '' : `
+          <button class="btn-danger-soft" style="${isBanned?'background:var(--emerald-glow);color:var(--emerald);border-color:rgba(16,185,129,.3)':''}"
+            onclick="banUser('${u.id}','${isBanned?'user':'banned'}',this)">
+            ${isBanned ? '✅ Разбан' : '🚫 Бан'}
+          </button>`;
+        return `<div class="admin-user-row" id="adminUser_${u.id}">
+          <div class="admin-user-avatar" style="${isBanned?'background:var(--danger)':''}">${(u.username||'?').slice(0,2).toUpperCase()}</div>
+          <div class="admin-user-info">
+            <div class="admin-user-name" style="${isBanned?'color:var(--danger);text-decoration:line-through':''}">${escapeHtml(u.username||'—')}</div>
+            <div class="admin-user-email">id: ${escapeHtml(u.id.slice(0,18))}… · баланс: ${Number(u.balance||0).toLocaleString('ru')} ₽</div>
+          </div>
+          <span class="role-badge role-${u.role||'user'}" style="font-size:10px;margin-right:4px">${u.role||'user'}</span>
+          ${banBtn}
+        </div>`;
+      }).join('');
     } catch(err) { el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
+  }
+
+  // Бан / разбан пользователя — меняет role в таблице profiles
+  async function banUser(userId, newRole, btn) {
+    const action = newRole === 'banned' ? 'забанить' : 'разбанить';
+    if (!confirm(`Вы уверены, что хотите ${action} этого пользователя?`)) return;
+    btn.disabled = true;
+    try {
+      const { error } = await sb
+        .from('profiles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (error) throw error;
+      showToast(newRole === 'banned' ? '🚫 Пользователь заблокирован' : '✅ Пользователь разблокирован', 'success');
+      // Reload the list to show updated state
+      await loadAdminUsers();
+    } catch(err) {
+      console.error('[banUser]', err.message);
+      showToast('Ошибка: ' + err.message, 'error');
+      btn.disabled = false;
+    }
   }
 
   async function loadAdminProducts() {
@@ -1454,11 +1505,17 @@
       const { data: { user }, error: ae } = await sb.auth.getUser();
       if (ae||!user) { closeSellModal(); showAuthModal('login'); return; }
       const un = user.user_metadata?.username || user.email?.split('@')[0] || 'Аноним';
+      const adText = SellForm.autoDelivery.trim();
       const payload = {
-        title: SellForm.title, description: SellForm.desc||'',
-        price: SellForm.price, category: SellForm.category,
-        seller_name: un, seller_id: user.id, user_id: user.id,
-        auto_delivery: SellForm.autoDelivery || null,
+        title:              SellForm.title,
+        description:        SellForm.desc || '',
+        price:              SellForm.price,
+        category:           SellForm.category,
+        seller_name:        un,
+        seller_id:          user.id,
+        user_id:            user.id,
+        auto_delivery:      adText ? true : false,   // boolean flag
+        auto_delivery_text: adText || null,           // actual text
       };
       console.log('[createProduct] inserting:', payload);
       const { data, error } = await sb.from('products').insert([payload]).select().single();
@@ -1470,7 +1527,7 @@
       const msg = err.message?.includes('row-level')||err.message?.includes('policy')
         ? 'Нет прав — настрой RLS INSERT для products'
         : err.message?.includes('column')
-          ? 'Ошибка схемы: добавь колонку auto_delivery в products'
+          ? 'Ошибка схемы: ' + err.message
           : (err.message||'Ошибка публикации');
       showToast(msg,'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
@@ -1548,29 +1605,58 @@
       if (ue||!user) throw new Error('not_authenticated');
       const bn=user.user_metadata?.username||user.email?.split('@')[0]||'Покупатель';
       const sellerId=product.seller_id||product.user_id||null;
-      const payload={product_id:product.id,buyer_id:user.id,buyer_name:bn,seller_id:sellerId,acc_login:login,acc_pass:pass||null,status:'paid'};
+      const payload={
+        product_id:  product.id,
+        buyer_id:    user.id,
+        buyer_name:  bn,
+        seller_id:   sellerId,
+        seller_name: product.seller_name || null,
+        acc_login:   login,
+        acc_pass:    pass || null,
+        status:      'paid',
+        price:       product.price,
+      };
       const { data, error } = await sb.from('orders').insert([payload]).select().single();
       if (error) { console.error('[createOrder]',error.message,error.details); throw error; }
 
       closeProductModal();
       showToast('🎉 Оплата прошла! Продавец уведомлён.','success');
-      if(!State.orders)State.orders=[]; State.orders.unshift({...data,product_title:product.title,product_category:product.category});
 
-      // АВТОВЫДАЧА: если у товара есть auto_delivery — сразу отправить как системное сообщение в чат
-      if (product.auto_delivery) {
-        const orderId=String(data.id);
-        await sb.from('messages').insert([{
-          order_id: orderId,
-          sender_id: sellerId||user.id,
+      if(!State.orders) State.orders=[];
+      State.orders.unshift({
+        ...data,
+        product_title:    product.title,
+        product_category: product.category,
+      });
+
+      // ─── АВТОВЫДАЧА ─────────────────────────────────────────────
+      // Используем auto_delivery_text — именно эта колонка есть в базе
+      const adText = product.auto_delivery_text;
+      if (product.auto_delivery && adText) {
+        // Вставляем системное сообщение в чат
+        const { error: msgErr } = await sb.from('messages').insert([{
+          order_id:    String(data.id),
+          sender_id:   sellerId || user.id,
           sender_name: '⚡ Автовыдача',
-          text: product.auto_delivery,
-          is_system: true,
+          text:        adText,
+          is_system:   true,
         }]);
-        showToast('⚡ Данные автоматически выданы в чате','success');
+        if (msgErr) console.warn('[autoDelivery] insert message failed:', msgErr.message);
+
+        // Показываем данные прямо в тосте и модальном окне
+        setTimeout(() => {
+          const confirmed = window.confirm(
+            `⚡ АВТОВЫДАЧА\n\nДанные твоего заказа:\n\n${adText}\n\n(Также доступно в чате сделки)`
+          );
+        }, 500);
+        showToast('⚡ Данные автоматически выданы!','success');
       }
+
     } catch(err){
       if(err.message==='not_authenticated'){ closeProductModal(); showAuthModal('login'); return; }
-      const msg=err.message?.includes('row-level')?'Нет прав — настрой RLS для orders':(err.message||'Ошибка создания заказа');
+      const msg=err.message?.includes('row-level')
+        ? 'Нет прав — настрой RLS для orders'
+        : (err.message||'Ошибка создания заказа');
       showToast(msg,'error');
     } finally { btn.classList.remove('loading'); btn.disabled=false; }
   }
@@ -1605,35 +1691,104 @@
 
   function renderOrderCard(o, isBuyer, idx){
     const meta=getCatMeta(o.product_category);
-    const stMap={paid:{cls:'status-paid',label:'Оплачено'},delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'}};
-    const st=stMap[o.status]||stMap.paid, date=relativeTime(o.created_at), price=o.price?`${Number(o.price).toLocaleString('ru')} ₽`:'—';
+    const stMap={
+      paid:      {cls:'status-paid',      label:'Оплачено'},
+      delivered: {cls:'status-delivered', label:'Выдано продавцом'},
+      completed: {cls:'status-completed', label:'Завершено'},
+    };
+    const st=stMap[o.status]||stMap.paid, date=relativeTime(o.created_at);
+    const price=o.price?`${Number(o.price).toLocaleString('ru')} ₽`:'—';
+
+    // Credentials: show after seller marks delivered
     const showCreds=isBuyer&&o.status!=='paid'&&(o.acc_login||o.acc_pass);
     const credsHtml=showCreds?`<div class="credentials-reveal"><div class="cred-label">🔑 Данные аккаунта</div>${o.acc_login?`<div class="cred-row"><span class="cred-key">Логин</span><span class="cred-val">${escapeHtml(o.acc_login)}</span></div>`:''}${o.acc_pass?`<div class="cred-row"><span class="cred-key">Пароль</span><span class="cred-val">${escapeHtml(o.acc_pass)}</span></div>`:''}</div>`:'';
+
     let actionBtn='';
-    if(isBuyer&&o.status==='delivered') actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Подтвердить</button>`;
-    else if(!isBuyer&&o.status==='paid') actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Выдано</button>`;
+    if (isBuyer && (o.status==='paid' || o.status==='delivered')) {
+      // Покупатель видит кнопку "Подтвердить" сразу после оплаты
+      actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>
+        Подтвердить получение
+      </button>`;
+    } else if (!isBuyer && o.status==='paid') {
+      // Продавец видит кнопку "Отметить выданным"
+      actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Отметить как выдано
+      </button>`;
+    }
+
     const pname=isBuyer?(o.seller_name||'Продавец'):(o.buyer_name||'Покупатель');
     const pid=isBuyer?o.seller_id:o.buyer_id;
     const uc=State.chat.unread[String(o.id)]||0;
-    const chatBtn=`<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Чат${uc>0?'<span class="chat-unread-dot"></span>':''}</button>`;
+    const chatBtn=`<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Чат${uc>0?'<span class="chat-unread-dot"></span>':''}
+    </button>`;
+
     const fc=[actionBtn,chatBtn].filter(Boolean).join('');
     return `<div class="order-card" id="orderCard_${o.id}" style="animation-delay:${idx*.05}s">
-      <div class="order-card-header"><div class="order-card-emoji">${meta.emoji}</div><div class="order-card-info"><div class="order-card-title">${escapeHtml(o.product_title)}</div><div class="order-card-date">${date}</div></div><div class="order-card-price">${price}</div></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px"><span class="status-badge ${st.cls}"><span class="status-dot"></span>${st.label}</span><span style="font-size:11px;color:var(--text-muted)">${isBuyer?'Продавец':'Покупатель'}: ${escapeHtml(isBuyer?(o.seller_name||'—'):(o.buyer_name||'—'))}</span></div>
-      ${credsHtml}${fc?`<div class="order-card-footer">${fc}</div>`:''}
+      <div class="order-card-header">
+        <div class="order-card-emoji">${meta.emoji}</div>
+        <div class="order-card-info">
+          <div class="order-card-title">${escapeHtml(o.product_title)}</div>
+          <div class="order-card-date">${date}</div>
+        </div>
+        <div class="order-card-price">${price}</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px">
+        <span class="status-badge ${st.cls}"><span class="status-dot"></span>${st.label}</span>
+        <span style="font-size:11px;color:var(--text-muted)">${isBuyer?'Продавец':'Покупатель'}: ${escapeHtml(isBuyer?(o.seller_name||'—'):(o.buyer_name||'—'))}</span>
+      </div>
+      ${credsHtml}
+      ${fc?`<div class="order-card-footer">${fc}</div>`:''}
     </div>`;
   }
 
   async function confirmOrderReceived(orderId, sellerId, btn){
     btn.disabled=true; btn.textContent='Подтверждаю…';
     try {
-      const { error } = await sb.from('orders').update({status:'completed'}).eq('id',orderId);
-      if (error) throw error;
-      showToast('✅ Сделка завершена! Деньги переданы продавцу.','success');
-      updateOrderStatus(orderId,'completed');
-      // Открываем форму отзыва
+      // 1. Mark order as completed in DB
+      const { error: orderErr } = await sb
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', orderId);
+      if (orderErr) throw orderErr;
+
+      // 2. Find the order price to credit the seller
+      const order = (State.purchases||[]).find(o=>String(o.id)===String(orderId));
+      const amount = Number(order?.price || 0);
+
+      // 3. Increment seller's balance in profiles
+      if (sellerId && amount > 0) {
+        // Read current balance first, then increment
+        const { data: profile, error: profileErr } = await sb
+          .from('profiles')
+          .select('balance')
+          .eq('id', sellerId)
+          .single();
+
+        if (!profileErr) {
+          const newBalance = (Number(profile?.balance) || 0) + amount;
+          const { error: balErr } = await sb
+            .from('profiles')
+            .update({ balance: newBalance, updated_at: new Date().toISOString() })
+            .eq('id', sellerId);
+          if (balErr) console.warn('[confirmOrder] balance update failed:', balErr.message);
+        } else {
+          console.warn('[confirmOrder] could not read seller profile:', profileErr.message);
+        }
+      }
+
+      showToast('✅ Сделка завершена! Деньги переданы продавцу.', 'success');
+      updateOrderStatus(orderId, 'completed');
       openReviewModal(orderId, sellerId);
-    } catch { showToast('✅ Сделка завершена!','success'); updateOrderStatus(orderId,'completed'); openReviewModal(orderId, sellerId); }
+
+    } catch(err) {
+      console.error('[confirmOrderReceived]', err.message);
+      showToast('Ошибка подтверждения: ' + err.message, 'error');
+      btn.disabled=false; btn.textContent='Подтвердить получение';
+    }
   }
 
   async function markAsDelivered(orderId, btn){
@@ -1641,8 +1796,13 @@
     try {
       const { error } = await sb.from('orders').update({status:'delivered'}).eq('id',orderId);
       if (error) throw error;
-      showToast('📦 Статус: Выдано','success'); updateOrderStatus(orderId,'delivered');
-    } catch { showToast('📦 Статус: Выдано (демо)','success'); updateOrderStatus(orderId,'delivered'); }
+      showToast('📦 Статус обновлён: Выдано', 'success');
+      updateOrderStatus(orderId,'delivered');
+    } catch(err) {
+      console.error('[markAsDelivered]', err.message);
+      showToast('Ошибка обновления статуса: ' + err.message, 'error');
+      btn.disabled=false; btn.textContent='Отметить как выдано';
+    }
   }
 
   function updateOrderStatus(orderId, ns){
@@ -1786,10 +1946,63 @@
   // PROFILE
   // ============================================================
   function switchProfileTab(tab) {
-    document.querySelectorAll('.profile-tab').forEach((t,i)=>t.classList.toggle('active',['settings','listings'][i]===tab));
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    // Find the clicked tab by matching text content
+    document.querySelectorAll('.profile-tab').forEach(t => {
+      const tabMap = { settings:'Настройки', listings:'Мои товары', messages:'Сообщения' };
+      if (t.textContent.trim() === tabMap[tab]) t.classList.add('active');
+    });
     document.getElementById('profilePanelSettings').classList.toggle('active', tab==='settings');
-    document.getElementById('profilePanelListings').classList.toggle('active', tab==='listings');
+    document.getElementById('profilePanelListings').classList.toggle('active',  tab==='listings');
+    document.getElementById('profilePanelMessages').classList.toggle('active',  tab==='messages');
     if (tab==='listings') loadMyListings();
+    if (tab==='messages') loadMyMessages();
+  }
+
+  // ── Inbox: last message per unique order_id involving current user
+  async function loadMyMessages() {
+    const el=document.getElementById('myMessagesContainer');
+    if(!State.user){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Войди в аккаунт</div>';return;}
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      // Fetch last 60 messages where user is either sender or is in one of their orders
+      const { data, error } = await sb
+        .from('messages')
+        .select('id,order_id,sender_id,sender_name,text,created_at,is_system')
+        .neq('sender_id', State.user.id) // messages FROM others TO me
+        .order('created_at', {ascending: false})
+        .limit(60);
+
+      if (error) throw error;
+
+      if (!data?.length) {
+        el.innerHTML=`<div class="drawer-empty"><div class="drawer-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Нет сообщений</h3><p>Начни сделку и пообщайся с продавцом</p></div>`;
+        return;
+      }
+
+      // Deduplicate by order_id — show only last message per conversation
+      const seen = new Set();
+      const unique = data.filter(m => {
+        if (seen.has(m.order_id)) return false;
+        seen.add(m.order_id); return true;
+      });
+
+      el.innerHTML = unique.map(m => {
+        const time = relativeTime(m.created_at);
+        const preview = m.is_system ? `⚡ ${m.text.slice(0,60)}` : m.text.slice(0,60);
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;transition:var(--transition)" onclick="openChatFromOrder('${m.order_id}','${escapeHtml(m.sender_name||'Пользователь')}','${m.sender_id}','')" onmouseover="this.style.borderColor='var(--border-hover)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${(m.sender_name||'?').slice(0,2).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escapeHtml(m.sender_name||'Пользователь')}</div>
+            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${m.text.length>60?'…':''}</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${time}</div>
+        </div>`;
+      }).join('');
+    } catch(err) {
+      console.error('[loadMyMessages]', err.message);
+      el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    }
   }
 
   async function loadMyListings(){
@@ -1813,15 +2026,24 @@
   }
 
   async function deleteMyListing(id, btn){
-    if(!confirm('Удалить объявление?')) return;
+    if(!confirm('Удалить объявление? Это действие необратимо.')) return;
     btn.disabled=true; btn.textContent='…';
     try {
-      const { error } = await sb.from('products').delete().eq('id',id).eq('seller_id',State.user.id);
-      if(error) throw error;
+      const { error } = await sb
+        .from('products')
+        .delete()
+        .eq('id', id)
+        .eq('seller_id', State.user.id); // Double check ownership
+      if (error) throw error;
       document.getElementById(`myListing_${id}`)?.remove();
-      State.allProducts=State.allProducts.filter(p=>String(p.id)!==String(id)); applyFilters();
-      showToast('Объявление удалено','success');
-    } catch(err){ showToast('Ошибка: '+err.message,'error'); btn.disabled=false; btn.textContent='Удалить'; }
+      State.allProducts = State.allProducts.filter(p=>String(p.id)!==String(id));
+      applyFilters();
+      showToast('Объявление удалено', 'success');
+    } catch(err) {
+      console.error('[deleteMyListing]', err.message);
+      showToast('Ошибка удаления: ' + (err.message?.includes('row-level') ? 'Нет прав (RLS)' : err.message), 'error');
+      btn.disabled=false; btn.textContent='Удалить';
+    }
   }
 
   function openProfileDrawer(){
