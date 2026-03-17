@@ -1017,14 +1017,16 @@
   // ============================================================
   const State = {
     user: null, userRole: 'user', isVerified: false,
+    profileUsername: '', // реальный ник из profiles (не email)
     allProducts: [], activeCategory: 'all', searchQuery: '',
     currentProduct: null,
     orders: [], purchases: [], sales: [], orderTab: 'purchases',
     chat: {
       orderId: null, partnerName: '', partnerId: null,
-      messages: [], subscription: null, typingTimer: null, unread: {},
+      messages: [], subscription: null, typingTimer: null, statusTimer: null, unread: {},
     },
     review: { orderId: null, sellerId: null, rating: 0 },
+    ticket: { currentId: null, subscription: null },
   };
 
   // ============================================================
@@ -1061,28 +1063,30 @@
     try {
       const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000));
       const query   = sb.from('profiles')
-        .select('role,is_verified,ban_until,ban_reason')
+        .select('role,is_verified,ban_until,ban_reason,username')
         .eq('id', uid).single();
       const { data } = await Promise.race([query, timeout]);
       const role = data?.role || 'user';
 
-      // ── Проверка активного бана (по роли ИЛИ по сроку) ──────
       const isBannedByRole  = role === 'banned';
       const isBannedByTimer = data?.ban_until && new Date(data.ban_until) > new Date();
       if (isBannedByRole || isBannedByTimer) {
-        console.warn('[auth] banned user — signing out');
         await sb.auth.signOut();
         const until  = data?.ban_until
           ? new Date(data.ban_until).toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'})
           : 'бессрочно';
         const reason = data?.ban_reason || 'Нарушение правил сервиса';
         showBanScreen(until, reason);
-        State.userRole   = 'banned';
-        State.isVerified = false;
+        State.userRole = 'banned'; State.isVerified = false; State.profileUsername = '';
         return;
       }
-      State.userRole   = role;
-      State.isVerified = data?.is_verified || false;
+      State.userRole        = role;
+      State.isVerified      = data?.is_verified || false;
+      State.profileUsername = data?.username || '';
+      // Sync into user_metadata so renderNavAuth shows real username not email
+      if (State.user && data?.username) {
+        State.user.user_metadata = { ...(State.user.user_metadata || {}), username: data.username };
+      }
     } catch { State.userRole = 'user'; State.isVerified = false; }
   }
 
@@ -1150,12 +1154,14 @@
       if (footerCta) footerCta.classList.add('hidden');
 
       const email    = user.email || '';
-      const username = user.user_metadata?.username || email.split('@')[0] || 'Пользователь';
+      // Используем реальный ник из profiles (не email-производное)
+      const username = State.profileUsername || user.user_metadata?.username || 'Пользователь';
       const initials = username.slice(0,2).toUpperCase();
       document.getElementById('userInitials').textContent  = initials;
       document.getElementById('navUserName').textContent   = username;
       document.getElementById('dropdownName').textContent  = username;
-      document.getElementById('dropdownEmail').textContent = email;
+      // В дропдауне показываем ник с @, а не email
+      document.getElementById('dropdownEmail').textContent = '@' + username;
 
       const roleLabels = { owner:'Владелец', admin:'Админ', moderator:'Модератор' };
       const roleBadge  = document.getElementById('dropdownRoleBadge');
@@ -1243,7 +1249,7 @@
     }
   }
 
-  async function signOut() { closeDropdown(); await sb.auth.signOut(); State.userRole='user'; State.isVerified=false; showToast('Вы вышли из аккаунта','success'); }
+  async function signOut() { closeDropdown(); await sb.auth.signOut(); State.userRole='user'; State.isVerified=false; State.profileUsername=''; showToast('Вы вышли из аккаунта','success'); }
 
   function requireAuth(cb) {
     closeDropdown();
@@ -1887,8 +1893,8 @@
         const isMe       = u.id === State.user?.id;
         const online     = isOnlineNow(u.last_seen);
         const onlineDot  = online
-          ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--emerald);display:inline-block;margin-right:4px;vertical-align:middle"></span>`
-          : `<span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block;margin-right:4px;vertical-align:middle" title="${formatLastSeen(u.last_seen)}"></span>`;
+          ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--emerald);display:inline-block;margin-right:4px;vertical-align:middle" title="Онлайн"></span>`
+          : `<span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block;margin-right:4px;vertical-align:middle" title="${formatOnlineStatus(u.last_seen)}"></span>`;
 
         return `<div class="admin-user-row" id="adminUser_${u.id}" style="${isBanned?'opacity:.6':''}">
           <div class="admin-user-avatar" style="${isBanned?'background:var(--danger)':isVerified?'background:linear-gradient(135deg,#3b82f6,#1d4ed8)':''}">${(u.username||'?').slice(0,2).toUpperCase()}</div>
@@ -2149,7 +2155,7 @@
     document.getElementById('previewCat').textContent=SellForm.category||'—';
     document.getElementById('summCat').textContent=SellForm.category;
     document.getElementById('summPrice').textContent=SellForm.price?`${Number(SellForm.price).toLocaleString('ru')} ₽`:'—';
-    document.getElementById('summSeller').textContent=State.user?.user_metadata?.username||State.user?.email?.split('@')[0]||'Вы';
+    document.getElementById('summSeller').textContent = State.profileUsername || State.user?.user_metadata?.username || 'Вы';
     const adRow=document.getElementById('summAutoDelivery'); adRow.style.display=SellForm.autoDelivery?'flex':'none';
   }
 
@@ -2158,9 +2164,7 @@
     try {
       const { data: { user }, error: ae } = await sb.auth.getUser();
       if (ae||!user) { closeSellModal(); showAuthModal('login'); return; }
-      // Fetch real username from profiles
-      const { data: myProf } = await sb.from('profiles').select('username').eq('id', user.id).single();
-      const un = myProf?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'Продавец';
+      const un = State.profileUsername || user.user_metadata?.username || 'Продавец';
       const adText = SellForm.autoDelivery.trim();
       const payload = {
         title:              SellForm.title,
@@ -2197,10 +2201,10 @@
   // ============================================================
   function relativeTime(d){ const s=(Date.now()-new Date(d).getTime())/1000; if(s<60)return'только что'; if(s<3600)return`${Math.floor(s/60)} мин. назад`; if(s<86400)return`${Math.floor(s/3600)} ч. назад`; if(s<604800)return`${Math.floor(s/86400)} дн. назад`; return new Date(d).toLocaleDateString('ru',{day:'numeric',month:'short'}); }
 
-  // Умный онлайн-статус: Онлайн / Был X мин/ч/дн назад
-  function formatLastSeen(dateStr) {
-    if (!dateStr) return 'офлайн';
-    const diffMs  = Date.now() - new Date(dateStr).getTime();
+  // Умный статус онлайн: Онлайн / Был(а) X мин/ч/дн назад
+  function formatOnlineStatus(lastSeenDate) {
+    if (!lastSeenDate) return 'офлайн';
+    const diffMs  = Date.now() - new Date(lastSeenDate).getTime();
     const diffMin = Math.floor(diffMs / 60000);
     const diffH   = Math.floor(diffMs / 3600000);
     const diffD   = Math.floor(diffMs / 86400000);
@@ -2209,10 +2213,7 @@
     if (diffH   < 24) return `был(а) ${diffH} ч. назад`;
     return `был(а) ${diffD} дн. назад`;
   }
-  function isOnlineNow(dateStr) {
-    if (!dateStr) return false;
-    return (Date.now() - new Date(dateStr).getTime()) < 5 * 60 * 1000;
-  }
+  function isOnlineNow(d) { return !!d && (Date.now() - new Date(d).getTime()) < 5*60*1000; }
 
   function openProduct(id) {
     const p=State.allProducts.find(x=>String(x.id)===String(id));
@@ -2268,11 +2269,11 @@
           .eq('seller_id', sellerId),
       ]);
 
-      // Online status — using formatLastSeen
+      // Online status — используем formatOnlineStatus
       const online     = isOnlineNow(profileRes.data?.last_seen);
       const onlineHtml = online
         ? `<span style="color:var(--emerald);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--emerald);display:inline-block;animation:pulse 2s infinite"></span>Онлайн</span>`
-        : `<span style="color:var(--text-muted)">${formatLastSeen(profileRes.data?.last_seen)}</span>`;
+        : `<span style="color:var(--text-muted)">${formatOnlineStatus(profileRes.data?.last_seen)}</span>`;
 
       // Real username from profiles — fallback to seller_name from product
       const realName   = profileRes.data?.username || State.currentProduct?.seller_name || 'Пользователь';
@@ -2351,9 +2352,7 @@
     try {
       const { data: { user }, error: ue } = await sb.auth.getUser();
       if (ue||!user) throw new Error('not_authenticated');
-      // Fetch real username from profiles (не email-производное)
-      const { data: myProfile } = await sb.from('profiles').select('username').eq('id', user.id).single();
-      const bn = myProfile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'Покупатель';
+      const bn = State.profileUsername || user.user_metadata?.username || 'Покупатель';
       const sellerId=product.seller_id||product.user_id||null;
       const payload={
         product_id:  product.id,
@@ -2426,6 +2425,7 @@
     if (!State.user) { renderOrders(); return; }
     const uid = State.user.id;
     try {
+      // Два отдельных простых запроса — без join, который ломается на RLS
       const [br, sr] = await Promise.all([
         sb.from('orders').select('*').eq('buyer_id',  uid).order('created_at', {ascending:false}),
         sb.from('orders').select('*').eq('seller_id', uid).order('created_at', {ascending:false}),
@@ -2433,7 +2433,7 @@
       if (br.error) console.error('[loadOrders] purchases:', br.error.message);
       if (sr.error) console.error('[loadOrders] sales:',    sr.error.message);
 
-      // Подтягиваем названия товаров
+      // Подтягиваем названия товаров отдельным запросом
       const allOrders  = [...(br.data||[]), ...(sr.data||[])];
       const productIds = [...new Set(allOrders.map(o=>o.product_id).filter(Boolean))];
       let productMap   = {};
@@ -2442,21 +2442,10 @@
         if (prods) prods.forEach(p => productMap[p.id] = p);
       }
 
-      // ── Подтягиваем реальные username из profiles (скрываем почты) ──
-      const participantIds = [...new Set(allOrders.flatMap(o => [o.buyer_id, o.seller_id].filter(Boolean)))];
-      let profileMap = {};
-      if (participantIds.length) {
-        const { data: profs } = await sb.from('profiles').select('id,username').in('id', participantIds);
-        if (profs) profs.forEach(p => profileMap[p.id] = p.username || p.id.slice(0,8));
-      }
-
       const enrich = o => ({
         ...o,
         product_title:    productMap[o.product_id]?.title    || o.product_title    || 'Товар удалён',
         product_category: productMap[o.product_id]?.category || o.product_category || '',
-        // Заменяем хранимые имена на реальные никнеймы из profiles
-        buyer_name:  profileMap[o.buyer_id]  || o.buyer_name  || 'Покупатель',
-        seller_name: profileMap[o.seller_id] || o.seller_name || 'Продавец',
       });
 
       State.purchases = (br.data||[]).map(enrich);
@@ -2799,16 +2788,14 @@
       const textEl = document.getElementById('chatStatusText');
       if (!dotEl || !textEl) return;
       const online = isOnlineNow(data?.last_seen);
-      dotEl.className = online ? 'chat-status-dot' : 'chat-status-dot offline';
-      textEl.textContent = formatLastSeen(data?.last_seen);
-      // Обновляем имя с бейджами
+      dotEl.className    = online ? 'chat-status-dot' : 'chat-status-dot offline';
+      textEl.textContent = formatOnlineStatus(data?.last_seen);
       if (data?.username) {
         const nameEl = document.getElementById('chatPartnerName');
         if (nameEl) nameEl.innerHTML = renderUserBadges(data.username, data.is_verified, data.role);
-        // Обновляем partnerName в State чтобы уведомления тоже показывали ник
         State.chat.partnerName = data.username;
       }
-    } catch { /* тихо игнорируем */ }
+    } catch { /* тихо */ }
   }
 
   function closeChat(){
@@ -2859,7 +2846,7 @@
     }
     const mine=msg.sender_id===State.user?.id;
     const senderDisplay = mine
-      ? renderUserBadges(State.user?.user_metadata?.username||State.user?.email?.split('@')[0]||'Я', State.isVerified, State.userRole)
+      ? renderUserBadges(State.profileUsername||State.user?.user_metadata?.username||'Я', State.isVerified, State.userRole)
       : escapeHtml(State.chat.partnerName||'Собеседник');
     const t=new Date(msg.created_at).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
     return `<div class="msg-row ${mine?'mine':'theirs'}" id="msg_${msg.id}"><div class="msg-bubble">${escapeHtml(msg.text)}</div><div class="msg-meta">${!mine?`<span class="msg-sender">${senderDisplay}</span>`:''}<span>${t}</span>${mine?'<span class="msg-read">✓✓</span>':''}</div></div>`;
@@ -2871,7 +2858,7 @@
     const input=document.getElementById('chatInput'), text=input.value.trim();
     if(!text||!State.chat.orderId) return;
     const user=State.user; if(!user){showAuthModal('login');return;}
-    const sn=user.user_metadata?.username||user.email?.split('@')[0]||'Аноним';
+    const sn = State.profileUsername || user.user_metadata?.username || 'Пользователь';
     input.value='';
     const opt={id:`temp_${Date.now()}`,order_id:State.chat.orderId,sender_id:user.id,sender_name:sn,text,is_system:false,created_at:new Date().toISOString()};
     State.chat.messages.push(opt); appendMessage(opt); scrollChatBottom();
@@ -2891,7 +2878,7 @@
 
   function handleChatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
   let tbt;
-  function handleChatTyping(){ clearTimeout(tbt); if(!State.chat.subscription||!State.user)return; const n=State.user.user_metadata?.username||State.user.email?.split('@')[0]||''; State.chat.subscription.send({type:'broadcast',event:'typing',payload:{sender_id:State.user.id,name:n}}); }
+  function handleChatTyping(){ clearTimeout(tbt); if(!State.chat.subscription||!State.user)return; const n=State.profileUsername||State.user.user_metadata?.username||''; State.chat.subscription.send({type:'broadcast',event:'typing',payload:{sender_id:State.user.id,name:n}}); }
   function updateDrawerChatBadges(){ Object.entries(State.chat.unread).forEach(([oid,cnt])=>{ const btn=document.getElementById(`chatBtn_${oid}`); if(!btn)return; const dot=btn.querySelector('.chat-unread-dot'); if(cnt>0){if(!dot)btn.insertAdjacentHTML('beforeend','<span class="chat-unread-dot"></span>');}else{dot?.remove();} }); }
 
   // ============================================================
@@ -3002,12 +2989,12 @@
 
   function openProfileDrawer(){
     const u=State.user; if(!u)return;
-    const un=u.user_metadata?.username||u.email?.split('@')[0]||'Пользователь';
+    const un = State.profileUsername || u.user_metadata?.username || 'Пользователь';
     const initials=un.slice(0,2).toUpperCase();
     const since=new Date(u.created_at||Date.now()).toLocaleDateString('ru',{year:'numeric',month:'long',day:'numeric'});
     document.getElementById('profileAvatar').textContent=initials;
     document.getElementById('profileUsername').innerHTML=renderUserBadges(un, State.isVerified, State.userRole);
-    document.getElementById('profileEmail').textContent=u.email||'—';
+    document.getElementById('profileEmail').textContent='@' + un; // показываем ник, не email
     document.getElementById('profileSince').textContent=`Участник с ${since}`;
     document.getElementById('profileUsernameInput').value=un;
     // Show placeholders while loading
