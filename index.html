@@ -803,10 +803,14 @@
           <button class="admin-tab active" id="adminTab1" onclick="switchAdminTab('users')">👥 Юзеры</button>
           <button class="admin-tab" id="adminTab2" onclick="switchAdminTab('products')">📦 Товары</button>
           <button class="admin-tab" id="adminTab3" onclick="switchAdminTab('chats')">💬 Чаты</button>
+          <button class="admin-tab" id="adminTab4" onclick="switchAdminTab('orders')">🛒 Сделки</button>
+          <button class="admin-tab" id="adminTab5" onclick="switchAdminTab('tickets')">🎫 Тикеты</button>
         </div>
         <div class="admin-panel active" id="adminPanelUsers"><div id="adminUsersList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
         <div class="admin-panel" id="adminPanelProducts"><div id="adminProductsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
         <div class="admin-panel" id="adminPanelChats"><div id="adminChatsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
+        <div class="admin-panel" id="adminPanelOrders"><div id="adminOrdersList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
+        <div class="admin-panel" id="adminPanelTickets"><div id="adminTicketsList"><div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div></div></div>
       </div>
     </div>
   </div>
@@ -1178,16 +1182,35 @@
   }
 
   // Sign In
+  // Sign In — поддержка входа по никнейму (без @) или email
   async function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pwd   = document.getElementById('loginPassword').value;
-    if (!validateField('loginEmail',email,'email')) return;
-    if (!validateField('loginPassword',pwd,'password')) return;
+    const raw = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+    if (!raw) { showFieldError('loginEmailErr','Введи email или никнейм'); document.getElementById('loginEmail').classList.add('error'); return; }
+    if (!pwd || pwd.length < 6) { showFieldError('loginPasswordErr','Минимум 6 символов'); document.getElementById('loginPassword').classList.add('error'); return; }
     setSubmitLoading('btnLoginSubmit', true);
-    const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
-    setSubmitLoading('btnLoginSubmit', false);
-    if (error) { const m=mapAuthError(error.message); showFieldError('loginPasswordErr',m); showToast(m,'error'); }
-    else { showToast('Добро пожаловать!','success'); closeAuthModal(); clearAuthForms(); }
+    try {
+      let email = raw;
+      // Если нет @ — считаем никнеймом, ищем email в profiles
+      if (!raw.includes('@')) {
+        const { data: prof, error: pe } = await sb
+          .from('profiles')
+          .select('email')
+          .eq('username', raw)
+          .maybeSingle();
+        if (pe || !prof?.email) {
+          setSubmitLoading('btnLoginSubmit', false);
+          showFieldError('loginEmailErr', 'Пользователь с таким никнеймом не найден');
+          document.getElementById('loginEmail').classList.add('error');
+          return;
+        }
+        email = prof.email;
+      }
+      const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
+      if (error) { const m = mapAuthError(error.message); showFieldError('loginPasswordErr', m); showToast(m,'error'); }
+      else { showToast('Добро пожаловать!','success'); closeAuthModal(); clearAuthForms(); }
+    } catch(e) { showToast(e.message || 'Ошибка входа','error'); }
+    finally { setSubmitLoading('btnLoginSubmit', false); }
   }
 
   // Sign Up
@@ -1218,7 +1241,7 @@
     }
   }
 
-  async function signOut() { closeDropdown(); await sb.auth.signOut(); showToast('Вы вышли из аккаунта','success'); }
+  async function signOut() { closeDropdown(); await sb.auth.signOut(); State.userRole='user'; State.isVerified=false; showToast('Вы вышли из аккаунта','success'); }
 
   function requireAuth(cb) {
     closeDropdown();
@@ -1279,11 +1302,339 @@
   }
 
   // ============================================================
+  // ============================================================
   // MODAL HELPERS
   // ============================================================
-  function openSupportModal() { closeDropdown(); document.getElementById('supportModal').classList.add('open'); document.body.style.overflow='hidden'; }
+  function openSupportModal() {
+    closeDropdown();
+    renderSupportModal();
+    document.getElementById('supportModal').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
   function openRulesModal()   { document.getElementById('rulesModal').classList.add('open'); document.body.style.overflow='hidden'; }
   function closeModal(id)     { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+
+  // ============================================================
+  // TICKET SYSTEM — Поддержка
+  // ============================================================
+
+  // Главный экран: список тикетов + форма создания
+  async function renderSupportModal() {
+    const body = document.getElementById('supportModalBody');
+    if (!State.user) {
+      body.innerHTML = `<p class="modal-subtitle">Войди в аккаунт, чтобы открыть тикет.</p>
+        <button class="btn-submit" onclick="closeModal('supportModal');showAuthModal('login')"><span class="btn-submit-text">Войти</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>`;
+      return;
+    }
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb.from('tickets')
+        .select('id,subject,status,created_at')
+        .eq('user_id', State.user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+
+      const statusMap = {
+        open:     '<span class="ticket-status-open">Открыт</span>',
+        closed:   '<span class="ticket-status-closed">Закрыт</span>',
+        rejected: '<span class="ticket-status-rejected">Отклонён</span>',
+      };
+
+      const listHtml = data?.length
+        ? data.map(t => `
+            <div class="ticket-row" onclick="openTicketChat('${t.id}','${escapeHtml(t.subject)}')">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.subject)}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${relativeTime(t.created_at)}</div>
+              </div>
+              ${statusMap[t.status] || statusMap.open}
+            </div>`).join('')
+        : '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">Тикетов пока нет</div>';
+
+      body.innerHTML = `
+        <p class="modal-subtitle" style="margin-bottom:12px">Ваши обращения в поддержку</p>
+        <div id="ticketList" style="margin-bottom:16px">${listHtml}</div>
+        <div style="border-top:1px solid var(--border);padding-top:14px">
+          <div class="field" style="margin-bottom:10px">
+            <label class="field-label">Тема обращения</label>
+            <div class="field-input-wrap">
+              <svg class="field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <input type="text" class="field-input" id="ticketSubject" placeholder="Опиши проблему кратко" maxlength="120" />
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label class="field-label">Описание</label>
+            <textarea class="field-textarea" id="ticketBody" placeholder="Подробно опиши ситуацию…" maxlength="1000" rows="3"></textarea>
+          </div>
+          <button class="btn-submit" id="btnCreateTicket" onclick="createTicket()">
+            <span class="btn-submit-text">Создать тикет</span>
+            <span class="btn-submit-spinner"><span class="spinner"></span></span>
+          </button>
+        </div>`;
+    } catch(err) {
+      body.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function createTicket() {
+    const subject = document.getElementById('ticketSubject')?.value.trim();
+    const bodyText = document.getElementById('ticketBody')?.value.trim();
+    if (!subject) { showToast('Введи тему обращения','error'); return; }
+    if (!State.user) { showToast('Нужна авторизация','error'); return; }
+    const btn = document.getElementById('btnCreateTicket');
+    btn.classList.add('loading'); btn.disabled = true;
+    try {
+      const { data, error } = await sb.from('tickets').insert([{
+        user_id: State.user.id,
+        subject,
+        body: bodyText || null,
+        status: 'open',
+      }]).select().single();
+      if (error) throw error;
+      showToast('✅ Тикет создан! Откликнемся в ближайшее время.','success');
+      // Первое сообщение пользователя
+      if (bodyText) {
+        await sb.from('ticket_messages').insert([{
+          ticket_id: data.id,
+          sender_id: State.user.id,
+          text: bodyText,
+          is_admin: false,
+        }]).catch(() => {});
+      }
+      openTicketChat(data.id, subject);
+    } catch(err) {
+      showToast('Ошибка: ' + err.message,'error');
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false;
+    }
+  }
+
+  // Чат внутри тикета (для пользователя)
+  async function openTicketChat(ticketId, subject) {
+    State.ticket.currentId = ticketId;
+    const body = document.getElementById('supportModalBody');
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <button onclick="renderSupportModal()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex-shrink:0;transition:var(--transition)" onmouseover="this.style.borderColor='var(--border-hover)'" onmouseout="this.style.borderColor='var(--border)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        </button>
+        <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(subject)}</div>
+        <span id="ticketStatusBadge"></span>
+      </div>
+      <div id="ticketMessages" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+      <div id="ticketInputArea" style="display:flex;gap:8px">
+        <input type="text" class="chat-input" id="ticketMsgInput" placeholder="Сообщение…" maxlength="1000" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTicketMessage()}" style="flex:1" />
+        <button class="chat-send" onclick="sendTicketMessage()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>`;
+    await loadTicketMessages(ticketId);
+    // Realtime для новых сообщений тикета
+    if (State.ticket.subscription) { sb.removeChannel(State.ticket.subscription); }
+    State.ticket.subscription = sb.channel(`ticket_${ticketId}`)
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'ticket_messages', filter:`ticket_id=eq.${ticketId}` }, payload => {
+        appendTicketMessage(payload.new);
+      })
+      .subscribe();
+  }
+
+  async function loadTicketMessages(ticketId) {
+    const el = document.getElementById('ticketMessages');
+    const badgeEl = document.getElementById('ticketStatusBadge');
+    try {
+      const [msgsRes, ticketRes] = await Promise.all([
+        sb.from('ticket_messages').select('*').eq('ticket_id', ticketId).order('created_at', {ascending:true}),
+        sb.from('tickets').select('status').eq('id', ticketId).single(),
+      ]);
+      if (msgsRes.error) throw msgsRes.error;
+      const status = ticketRes.data?.status || 'open';
+      if (badgeEl) badgeEl.innerHTML = {
+        open:     '<span class="ticket-status-open">Открыт</span>',
+        closed:   '<span class="ticket-status-closed">Закрыт</span>',
+        rejected: '<span class="ticket-status-rejected">Отклонён</span>',
+      }[status] || '';
+      // Скрываем ввод если тикет закрыт/отклонён
+      const inputArea = document.getElementById('ticketInputArea');
+      if (inputArea && status !== 'open') {
+        inputArea.innerHTML = `<div style="text-align:center;width:100%;font-size:12px;color:var(--text-muted);padding:8px">Тикет ${status==='closed'?'закрыт':'отклонён'} — переписка завершена</div>`;
+      }
+      if (el) {
+        el.innerHTML = '';
+        (msgsRes.data||[]).forEach(m => appendTicketMessage(m, false));
+        el.scrollTop = el.scrollHeight;
+      }
+    } catch(err) { if(el) el.innerHTML = `<div style="color:var(--danger);font-size:13px;padding:8px">${escapeHtml(err.message)}</div>`; }
+  }
+
+  function appendTicketMessage(msg, scroll=true) {
+    const el = document.getElementById('ticketMessages');
+    if (!el) return;
+    const mine = msg.sender_id === State.user?.id && !msg.is_admin;
+    const isAdmin = msg.is_admin;
+    const t = new Date(msg.created_at||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    const html = isAdmin
+      ? `<div style="align-self:flex-start;max-width:80%"><div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);border-bottom-left-radius:4px;padding:8px 12px;font-size:13px;color:var(--text-primary)">${escapeHtml(msg.text)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px"><span style="color:var(--amber);font-weight:600">Поддержка</span><span>${t}</span></div></div>`
+      : `<div style="align-self:flex-end;max-width:80%"><div style="background:linear-gradient(135deg,var(--violet),var(--violet-dim));color:#fff;border-radius:var(--radius-lg);border-bottom-right-radius:4px;padding:8px 12px;font-size:13px">${escapeHtml(msg.text)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-align:right">${t}</div></div>`;
+    el.insertAdjacentHTML('beforeend', html);
+    if (scroll) el.scrollTop = el.scrollHeight;
+  }
+
+  async function sendTicketMessage() {
+    const input = document.getElementById('ticketMsgInput');
+    const text = input?.value.trim();
+    if (!text || !State.ticket.currentId) return;
+    if (!State.user) { showToast('Нужна авторизация','error'); return; }
+    input.value = '';
+    const tempMsg = { id: `temp_${Date.now()}`, ticket_id: State.ticket.currentId, sender_id: State.user.id, text, is_admin: false, created_at: new Date().toISOString() };
+    appendTicketMessage(tempMsg);
+    try {
+      const { error } = await sb.from('ticket_messages').insert([{
+        ticket_id: State.ticket.currentId,
+        sender_id: State.user.id,
+        text,
+        is_admin: false,
+      }]);
+      if (error) throw error;
+    } catch(err) { showToast('Ошибка отправки: ' + err.message,'error'); }
+  }
+
+  // ── ADMIN: список тикетов ──────────────────────────────────────
+  async function loadAdminTickets() {
+    const el = document.getElementById('adminTicketsList');
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb.from('tickets')
+        .select('id,subject,status,created_at,user_id,profiles(username)')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Тикетов нет</div>'; return; }
+
+      const statusMap = {
+        open:     '<span class="ticket-status-open">Открыт</span>',
+        closed:   '<span class="ticket-status-closed">Закрыт</span>',
+        rejected: '<span class="ticket-status-rejected">Отклонён</span>',
+      };
+
+      el.innerHTML = data.map(t => {
+        const uname = t.profiles?.username || t.user_id?.slice(0,8) || '—';
+        return `<div class="ticket-row">
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="adminOpenTicket('${t.id}','${escapeHtml(t.subject)}')">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.subject)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">от ${escapeHtml(uname)} · ${relativeTime(t.created_at)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+            ${statusMap[t.status]||statusMap.open}
+            ${t.status==='open'?`<div style="display:flex;gap:4px">
+              <button class="btn-confirm" style="font-size:10px;height:24px;padding:0 8px" onclick="adminCloseTicket('${t.id}',this)">✅ Закрыть</button>
+              <button class="btn-danger-soft" style="font-size:10px;padding:2px 8px;min-height:0" onclick="adminRejectTicket('${t.id}',this)">❌ Откл.</button>
+            </div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    } catch(err) { el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`; }
+  }
+
+  // Открыть тикет в Админ-панели
+  async function adminOpenTicket(ticketId, subject) {
+    const el = document.getElementById('adminTicketsList');
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <button onclick="loadAdminTickets()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        </button>
+        <span style="font-size:13px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(subject)}</span>
+        <button class="btn-confirm" style="font-size:11px;height:28px" onclick="adminCloseTicketInline('${ticketId}')">✅ Закрыть</button>
+        <button class="btn-danger-soft" style="font-size:11px;padding:3px 9px;min-height:0" onclick="adminRejectTicketInline('${ticketId}')">❌ Отклонить</button>
+      </div>
+      <div id="adminTicketMsgs" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px"><div style="text-align:center;padding:16px;color:var(--text-muted)">Загрузка…</div></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" class="chat-input" id="adminTicketInput" placeholder="Ответ от поддержки…" maxlength="1000" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendTicketMessage('${ticketId}')}" style="flex:1" />
+        <button class="chat-send" onclick="adminSendTicketMessage('${ticketId}')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>`;
+
+    // Загружаем сообщения
+    try {
+      const { data, error } = await sb.from('ticket_messages').select('*').eq('ticket_id', ticketId).order('created_at', {ascending:true});
+      if (error) throw error;
+      const msgsEl = document.getElementById('adminTicketMsgs');
+      if (msgsEl) {
+        msgsEl.innerHTML = '';
+        (data||[]).forEach(m => {
+          const t = new Date(m.created_at||Date.now()).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+          const html = m.is_admin
+            ? `<div style="align-self:flex-end;max-width:80%"><div style="background:linear-gradient(135deg,var(--amber),#d97706);color:#000;border-radius:var(--radius-lg);border-bottom-right-radius:4px;padding:8px 12px;font-size:13px">${escapeHtml(m.text)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-align:right">${t} (вы)</div></div>`
+            : `<div style="align-self:flex-start;max-width:80%"><div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);border-bottom-left-radius:4px;padding:8px 12px;font-size:13px;color:var(--text-primary)">${escapeHtml(m.text)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">${t}</div></div>`;
+          msgsEl.insertAdjacentHTML('beforeend', html);
+        });
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      }
+    } catch(err) {
+      const msgsEl = document.getElementById('adminTicketMsgs');
+      if (msgsEl) msgsEl.innerHTML = `<div style="color:var(--danger);font-size:13px">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function adminSendTicketMessage(ticketId) {
+    const input = document.getElementById('adminTicketInput');
+    const text = input?.value.trim();
+    if (!text) return;
+    input.value = '';
+    const msgsEl = document.getElementById('adminTicketMsgs');
+    const t = new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    if (msgsEl) {
+      msgsEl.insertAdjacentHTML('beforeend', `<div style="align-self:flex-end;max-width:80%"><div style="background:linear-gradient(135deg,var(--amber),#d97706);color:#000;border-radius:var(--radius-lg);border-bottom-right-radius:4px;padding:8px 12px;font-size:13px">${escapeHtml(text)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-align:right">${t} (вы)</div></div>`);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    try {
+      const { error } = await sb.from('ticket_messages').insert([{
+        ticket_id: ticketId,
+        sender_id: State.user.id,
+        text,
+        is_admin: true,
+      }]);
+      if (error) throw error;
+    } catch(err) { showToast('Ошибка: ' + err.message,'error'); }
+  }
+
+  async function adminCloseTicket(ticketId, btn) {
+    btn.disabled = true;
+    try {
+      const { error } = await sb.from('tickets').update({ status: 'closed' }).eq('id', ticketId);
+      if (error) throw error;
+      showToast('✅ Тикет закрыт','success');
+      await loadAdminTickets();
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); btn.disabled=false; }
+  }
+
+  async function adminRejectTicket(ticketId, btn) {
+    btn.disabled = true;
+    try {
+      const { error } = await sb.from('tickets').update({ status: 'rejected' }).eq('id', ticketId);
+      if (error) throw error;
+      showToast('❌ Тикет отклонён','success');
+      await loadAdminTickets();
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); btn.disabled=false; }
+  }
+
+  async function adminCloseTicketInline(ticketId) {
+    try {
+      await sb.from('tickets').update({ status: 'closed' }).eq('id', ticketId);
+      showToast('✅ Тикет закрыт','success');
+      await loadAdminTickets();
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); }
+  }
+
+  async function adminRejectTicketInline(ticketId) {
+    try {
+      await sb.from('tickets').update({ status: 'rejected' }).eq('id', ticketId);
+      showToast('❌ Тикет отклонён','success');
+      await loadAdminTickets();
+    } catch(err) { showToast('Ошибка: '+err.message,'error'); }
+  }
 
   window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20),{passive:true});
 
@@ -1416,13 +1767,91 @@
   }
 
   function switchAdminTab(tab) {
-    ['users','products','chats'].forEach((t,i) => {
-      document.getElementById(`adminTab${i+1}`).classList.toggle('active', t===tab);
-      document.getElementById(`adminPanel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.toggle('active', t===tab);
+    const tabs = ['users','products','chats','orders','tickets'];
+    tabs.forEach((t, i) => {
+      const tabEl   = document.getElementById(`adminTab${i+1}`);
+      const panelId = `adminPanel${t.charAt(0).toUpperCase()+t.slice(1)}`;
+      const panelEl = document.getElementById(panelId);
+      if (tabEl)   tabEl.classList.toggle('active', t === tab);
+      if (panelEl) panelEl.classList.toggle('active', t === tab);
     });
-    if (tab==='users')    loadAdminUsers();
-    else if (tab==='products') loadAdminProducts();
-    else if (tab==='chats')    loadAdminChats();
+    if      (tab === 'users')    loadAdminUsers();
+    else if (tab === 'products') loadAdminProducts();
+    else if (tab === 'chats')    loadAdminChats();
+    else if (tab === 'orders')   loadAdminOrders();
+    else if (tab === 'tickets')  loadAdminTickets();
+  }
+
+  // ── ADMIN: Все сделки ─────────────────────────────────────────
+  async function loadAdminOrders() {
+    const el = document.getElementById('adminOrdersList');
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
+    try {
+      const { data, error } = await sb
+        .from('orders')
+        .select('id,buyer_id,seller_id,price,status,created_at,product_id')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Сделок нет</div>'; return; }
+
+      // Подгружаем ники участников и названия товаров
+      const userIds    = [...new Set(data.flatMap(o => [o.buyer_id, o.seller_id].filter(Boolean)))];
+      const productIds = [...new Set(data.map(o => o.product_id).filter(Boolean))];
+      const [profilesRes, productsRes] = await Promise.all([
+        userIds.length    ? sb.from('profiles').select('id,username').in('id', userIds)    : { data: [] },
+        productIds.length ? sb.from('products').select('id,title').in('id', productIds)   : { data: [] },
+      ]);
+      const pmap = Object.fromEntries((profilesRes.data||[]).map(p => [p.id, p.username || p.id.slice(0,8)]));
+      const tmap = Object.fromEntries((productsRes.data||[]).map(p => [p.id, p.title]));
+
+      const stMap = {
+        pending:   { cls:'status-pending',   l:'Ожидает' },
+        paid:      { cls:'status-paid',      l:'Оплачено' },
+        delivered: { cls:'status-delivered', l:'Выдано' },
+        completed: { cls:'status-completed', l:'Завершено' },
+      };
+
+      el.innerHTML = data.map(o => {
+        const st     = stMap[o.status] || stMap.pending;
+        const title  = tmap[o.product_id] || 'Товар удалён';
+        const buyer  = pmap[o.buyer_id]  || o.buyer_id?.slice(0,8)  || '—';
+        const seller = pmap[o.seller_id] || o.seller_id?.slice(0,8) || '—';
+        const canConfirm = o.status !== 'completed';
+        return `<div class="admin-order-row">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Покупатель: <b>${escapeHtml(buyer)}</b> · Продавец: <b>${escapeHtml(seller)}</b></div>
+            <div style="font-size:11px;color:var(--text-muted)">${relativeTime(o.created_at)} · ${Number(o.price||0).toLocaleString('ru')} ₽</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
+            <span class="status-badge ${st.cls}" style="font-size:10px"><span class="status-dot"></span>${st.l}</span>
+            ${canConfirm ? `<button class="btn-confirm" style="font-size:11px;height:28px" onclick="adminConfirmOrder('${o.id}','${o.seller_id||''}','${Number(o.price||0)}',this)">✅ Подтвердить</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    } catch(err) {
+      el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function adminConfirmOrder(orderId, sellerId, price, btn) {
+    if (!confirm('Подтвердить сделку и перевести деньги продавцу?')) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const { error: oe } = await sb.from('orders').update({ status: 'completed' }).eq('id', orderId);
+      if (oe) throw oe;
+      if (sellerId && Number(price) > 0) {
+        const { data: prof } = await sb.from('profiles').select('balance').eq('id', sellerId).single();
+        const nb = (Number(prof?.balance) || 0) + Number(price);
+        await sb.from('profiles').update({ balance: nb }).eq('id', sellerId);
+      }
+      showToast('✅ Сделка подтверждена, деньги переведены продавцу', 'success');
+      await loadAdminOrders();
+    } catch(err) {
+      showToast('Ошибка: ' + err.message, 'error');
+      btn.disabled = false; btn.textContent = '✅ Подтвердить';
+    }
   }
 
   async function loadAdminUsers() {
@@ -1960,15 +2389,40 @@
 
   async function loadOrders(){
     renderOrdersSkeleton();
+    if (!State.user) { renderOrders(); return; }
+    const uid = State.user.id;
     try {
-      const { data: { user } } = await sb.auth.getUser(); if(!user){renderOrders();return;}
-      const [br,sr]=await Promise.all([
-        sb.from('orders').select('*,products(title,category,auto_delivery)').eq('buyer_id',user.id).order('created_at',{ascending:false}),
-        sb.from('orders').select('*,products(title,category)').eq('seller_id',user.id).order('created_at',{ascending:false}),
+      // Два отдельных простых запроса — без join, который ломается на RLS
+      const [br, sr] = await Promise.all([
+        sb.from('orders').select('*').eq('buyer_id',  uid).order('created_at', {ascending:false}),
+        sb.from('orders').select('*').eq('seller_id', uid).order('created_at', {ascending:false}),
       ]);
-      const mo=o=>({...o,product_title:o.products?.title||o.product_title||'Товар удалён',product_category:o.products?.category||o.product_category||''});
-      State.purchases=(br.data||[]).map(mo); State.sales=(sr.data||[]).map(mo); renderOrders();
-    } catch { State.purchases=State.orders||[]; State.sales=[]; renderOrders(); }
+      if (br.error) console.error('[loadOrders] purchases:', br.error.message);
+      if (sr.error) console.error('[loadOrders] sales:',    sr.error.message);
+
+      // Подтягиваем названия товаров отдельным запросом
+      const allOrders  = [...(br.data||[]), ...(sr.data||[])];
+      const productIds = [...new Set(allOrders.map(o=>o.product_id).filter(Boolean))];
+      let productMap   = {};
+      if (productIds.length) {
+        const { data: prods } = await sb.from('products').select('id,title,category').in('id', productIds);
+        if (prods) prods.forEach(p => productMap[p.id] = p);
+      }
+
+      const enrich = o => ({
+        ...o,
+        product_title:    productMap[o.product_id]?.title    || o.product_title    || 'Товар удалён',
+        product_category: productMap[o.product_id]?.category || o.product_category || '',
+      });
+
+      State.purchases = (br.data||[]).map(enrich);
+      State.sales     = (sr.data||[]).map(enrich);
+      renderOrders();
+    } catch(err) {
+      console.error('[loadOrders]', err.message);
+      State.purchases = []; State.sales = [];
+      renderOrders();
+    }
   }
 
   function renderOrders(){
@@ -1982,48 +2436,30 @@
   function renderOrderCard(o, isBuyer, idx){
     const meta=getCatMeta(o.product_category);
     const stMap={
-      pending:   {cls:'status-paid',      label:'Ожидает выдачи'},
+      pending:   {cls:'status-pending',   label:'Ожидает выдачи'},
       paid:      {cls:'status-paid',      label:'Оплачено'},
       delivered: {cls:'status-delivered', label:'Выдано продавцом'},
       completed: {cls:'status-completed', label:'Завершено'},
     };
-    const st=stMap[o.status]||stMap.paid, date=relativeTime(o.created_at);
+    const st=stMap[o.status]||stMap.pending, date=relativeTime(o.created_at);
     const price=o.price?`${Number(o.price).toLocaleString('ru')} ₽`:'—';
-
-    // Credentials: show after seller marks delivered
-    const showCreds=isBuyer&&o.status!=='paid'&&(o.acc_login||o.acc_pass);
+    const showCreds=isBuyer&&o.status!=='pending'&&o.status!=='paid'&&(o.acc_login||o.acc_pass);
     const credsHtml=showCreds?`<div class="credentials-reveal"><div class="cred-label">🔑 Данные аккаунта</div>${o.acc_login?`<div class="cred-row"><span class="cred-key">Логин</span><span class="cred-val">${escapeHtml(o.acc_login)}</span></div>`:''}${o.acc_pass?`<div class="cred-row"><span class="cred-key">Пароль</span><span class="cred-val">${escapeHtml(o.acc_pass)}</span></div>`:''}</div>`:'';
-
     let actionBtn='';
-    if (isBuyer && (o.status==='pending' || o.status==='paid' || o.status==='delivered')) {
-      // Покупатель видит кнопку "Подтвердить" сразу после оплаты
-      actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>
-        Подтвердить получение
-      </button>`;
-    } else if (!isBuyer && (o.status==='pending' || o.status==='paid')) {
-      // Продавец видит кнопку "Отметить выданным"
-      actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        Отметить как выдано
-      </button>`;
+    if (isBuyer && (o.status==='pending'||o.status==='paid'||o.status==='delivered')) {
+      actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Подтвердить получение</button>`;
+    } else if (!isBuyer && (o.status==='pending'||o.status==='paid')) {
+      actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Отметить как выдано</button>`;
     }
-
     const pname=isBuyer?(o.seller_name||'Продавец'):(o.buyer_name||'Покупатель');
     const pid=isBuyer?o.seller_id:o.buyer_id;
-    const chatBtn=`<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Чат${uc>0?'<span class="chat-unread-dot"></span>':''}
-    </button>`;
-
+    const uc=State.chat.unread[String(o.id)]||0;
+    const chatBtn=`<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Чат${uc>0?'<span class="chat-unread-dot"></span>':''}</button>`;
     const fc=[actionBtn,chatBtn].filter(Boolean).join('');
     return `<div class="order-card" id="orderCard_${o.id}" style="animation-delay:${idx*.05}s">
       <div class="order-card-header">
         <div class="order-card-emoji">${meta.emoji}</div>
-        <div class="order-card-info">
-          <div class="order-card-title">${escapeHtml(o.product_title)}</div>
-          <div class="order-card-date">${date}</div>
-        </div>
+        <div class="order-card-info"><div class="order-card-title">${escapeHtml(o.product_title)}</div><div class="order-card-date">${date}</div></div>
         <div class="order-card-price">${price}</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px">
@@ -2164,18 +2600,63 @@
   function openChatFromOrder(oid,pn,pid,ot){ openChat({orderId:String(oid),partnerName:pn,partnerId:pid,orderTitle:ot}); }
 
   function openChat({orderId,partnerName,partnerId,orderTitle}){
-    const c=State.chat; c.orderId=orderId; c.partnerName=partnerName||'Собеседник'; c.partnerId=partnerId;
+    const c=State.chat;
+    c.orderId=orderId; c.partnerName=partnerName||'Собеседник'; c.partnerId=partnerId;
     document.getElementById('chatPartnerAvatar').textContent=(partnerName||'?').slice(0,2).toUpperCase();
     document.getElementById('chatPartnerName').textContent=c.partnerName;
     document.getElementById('chatOrderBadge').textContent=(orderTitle||'').length>20?orderTitle.slice(0,20)+'…':(orderTitle||'Сделка');
+
+    // Сброс статуса до загрузки
+    const dotEl  = document.getElementById('chatStatusDot');
+    const textEl = document.getElementById('chatStatusText');
+    if (dotEl)  { dotEl.className='chat-status-dot'; }
+    if (textEl) textEl.textContent = '...';
+
     c.messages=[]; renderMessages();
     document.getElementById('chatPanel').classList.add('open'); document.body.style.overflow='hidden';
     loadMessages(orderId); subscribeChatRoom(orderId);
     c.unread[orderId]=0; updateDrawerChatBadges();
     setTimeout(()=>document.getElementById('chatInput').focus(),300);
+
+    // Динамический статус онлайн
+    if (partnerId) loadChatPartnerStatus(partnerId);
+
+    // Периодически обновляем статус пока чат открыт
+    clearInterval(c.statusTimer);
+    if (partnerId) c.statusTimer = setInterval(() => loadChatPartnerStatus(partnerId), 60000);
   }
 
-  function closeChat(){ document.getElementById('chatPanel').classList.remove('open'); document.body.style.overflow=''; clearTimeout(State.chat.typingTimer); document.getElementById('chatTyping').style.display='none'; }
+  async function loadChatPartnerStatus(partnerId) {
+    try {
+      const { data } = await sb.from('profiles').select('last_seen,username,is_verified,role').eq('id', partnerId).single();
+      const dotEl  = document.getElementById('chatStatusDot');
+      const textEl = document.getElementById('chatStatusText');
+      if (!dotEl || !textEl) return;
+      const lastSeen = data?.last_seen;
+      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5*60*1000;
+      if (isOnline) {
+        dotEl.className  = 'chat-status-dot';
+        textEl.textContent = 'онлайн';
+      } else {
+        dotEl.className  = 'chat-status-dot offline';
+        const minAgo = lastSeen ? Math.floor((Date.now()-new Date(lastSeen).getTime())/60000) : null;
+        textEl.textContent = minAgo !== null ? `офлайн · ${minAgo} мин. назад` : 'офлайн';
+      }
+      // Обновляем имя с бейджами если есть данные
+      if (data?.username) {
+        const nameEl = document.getElementById('chatPartnerName');
+        if (nameEl) nameEl.innerHTML = renderUserBadges(data.username, data.is_verified, data.role);
+      }
+    } catch { /* тихо игнорируем */ }
+  }
+
+  function closeChat(){
+    document.getElementById('chatPanel').classList.remove('open');
+    document.body.style.overflow='';
+    clearTimeout(State.chat.typingTimer);
+    clearInterval(State.chat.statusTimer);
+    document.getElementById('chatTyping').style.display='none';
+  }
 
   async function loadMessages(orderId){
     const msgsEl=document.getElementById('chatMessages');
