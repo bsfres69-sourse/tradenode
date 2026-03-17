@@ -1885,10 +1885,10 @@
         const isBanned   = u.role === 'banned' || (u.ban_until && new Date(u.ban_until) > new Date());
         const isVerified = u.is_verified;
         const isMe       = u.id === State.user?.id;
-        const isOnline   = u.last_seen && (Date.now() - new Date(u.last_seen).getTime()) < 5*60*1000;
-        const onlineDot  = isOnline
+        const online     = isOnlineNow(u.last_seen);
+        const onlineDot  = online
           ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--emerald);display:inline-block;margin-right:4px;vertical-align:middle"></span>`
-          : '';
+          : `<span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block;margin-right:4px;vertical-align:middle" title="${formatLastSeen(u.last_seen)}"></span>`;
 
         return `<div class="admin-user-row" id="adminUser_${u.id}" style="${isBanned?'opacity:.6':''}">
           <div class="admin-user-avatar" style="${isBanned?'background:var(--danger)':isVerified?'background:linear-gradient(135deg,#3b82f6,#1d4ed8)':''}">${(u.username||'?').slice(0,2).toUpperCase()}</div>
@@ -2158,7 +2158,9 @@
     try {
       const { data: { user }, error: ae } = await sb.auth.getUser();
       if (ae||!user) { closeSellModal(); showAuthModal('login'); return; }
-      const un = user.user_metadata?.username || user.email?.split('@')[0] || 'Аноним';
+      // Fetch real username from profiles
+      const { data: myProf } = await sb.from('profiles').select('username').eq('id', user.id).single();
+      const un = myProf?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'Продавец';
       const adText = SellForm.autoDelivery.trim();
       const payload = {
         title:              SellForm.title,
@@ -2194,6 +2196,23 @@
   // PRODUCT DETAIL
   // ============================================================
   function relativeTime(d){ const s=(Date.now()-new Date(d).getTime())/1000; if(s<60)return'только что'; if(s<3600)return`${Math.floor(s/60)} мин. назад`; if(s<86400)return`${Math.floor(s/3600)} ч. назад`; if(s<604800)return`${Math.floor(s/86400)} дн. назад`; return new Date(d).toLocaleDateString('ru',{day:'numeric',month:'short'}); }
+
+  // Умный онлайн-статус: Онлайн / Был X мин/ч/дн назад
+  function formatLastSeen(dateStr) {
+    if (!dateStr) return 'офлайн';
+    const diffMs  = Date.now() - new Date(dateStr).getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH   = Math.floor(diffMs / 3600000);
+    const diffD   = Math.floor(diffMs / 86400000);
+    if (diffMin < 5)  return 'онлайн';
+    if (diffMin < 60) return `был(а) ${diffMin} мин. назад`;
+    if (diffH   < 24) return `был(а) ${diffH} ч. назад`;
+    return `был(а) ${diffD} дн. назад`;
+  }
+  function isOnlineNow(dateStr) {
+    if (!dateStr) return false;
+    return (Date.now() - new Date(dateStr).getTime()) < 5 * 60 * 1000;
+  }
 
   function openProduct(id) {
     const p=State.allProducts.find(x=>String(x.id)===String(id));
@@ -2249,13 +2268,11 @@
           .eq('seller_id', sellerId),
       ]);
 
-      // Online status
-      const lastSeen = profileRes.data?.last_seen;
-      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5*60*1000;
-      const minAgo   = lastSeen ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 60000) : null;
-      const onlineHtml = isOnline
+      // Online status — using formatLastSeen
+      const online     = isOnlineNow(profileRes.data?.last_seen);
+      const onlineHtml = online
         ? `<span style="color:var(--emerald);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--emerald);display:inline-block;animation:pulse 2s infinite"></span>Онлайн</span>`
-        : `<span style="color:var(--text-muted)">Офлайн${minAgo !== null ? ' · ' + minAgo + ' мин. назад' : ''}</span>`;
+        : `<span style="color:var(--text-muted)">${formatLastSeen(profileRes.data?.last_seen)}</span>`;
 
       // Real username from profiles — fallback to seller_name from product
       const realName   = profileRes.data?.username || State.currentProduct?.seller_name || 'Пользователь';
@@ -2334,7 +2351,9 @@
     try {
       const { data: { user }, error: ue } = await sb.auth.getUser();
       if (ue||!user) throw new Error('not_authenticated');
-      const bn=user.user_metadata?.username||user.email?.split('@')[0]||'Покупатель';
+      // Fetch real username from profiles (не email-производное)
+      const { data: myProfile } = await sb.from('profiles').select('username').eq('id', user.id).single();
+      const bn = myProfile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'Покупатель';
       const sellerId=product.seller_id||product.user_id||null;
       const payload={
         product_id:  product.id,
@@ -2407,7 +2426,6 @@
     if (!State.user) { renderOrders(); return; }
     const uid = State.user.id;
     try {
-      // Два отдельных простых запроса — без join, который ломается на RLS
       const [br, sr] = await Promise.all([
         sb.from('orders').select('*').eq('buyer_id',  uid).order('created_at', {ascending:false}),
         sb.from('orders').select('*').eq('seller_id', uid).order('created_at', {ascending:false}),
@@ -2415,7 +2433,7 @@
       if (br.error) console.error('[loadOrders] purchases:', br.error.message);
       if (sr.error) console.error('[loadOrders] sales:',    sr.error.message);
 
-      // Подтягиваем названия товаров отдельным запросом
+      // Подтягиваем названия товаров
       const allOrders  = [...(br.data||[]), ...(sr.data||[])];
       const productIds = [...new Set(allOrders.map(o=>o.product_id).filter(Boolean))];
       let productMap   = {};
@@ -2424,10 +2442,21 @@
         if (prods) prods.forEach(p => productMap[p.id] = p);
       }
 
+      // ── Подтягиваем реальные username из profiles (скрываем почты) ──
+      const participantIds = [...new Set(allOrders.flatMap(o => [o.buyer_id, o.seller_id].filter(Boolean)))];
+      let profileMap = {};
+      if (participantIds.length) {
+        const { data: profs } = await sb.from('profiles').select('id,username').in('id', participantIds);
+        if (profs) profs.forEach(p => profileMap[p.id] = p.username || p.id.slice(0,8));
+      }
+
       const enrich = o => ({
         ...o,
         product_title:    productMap[o.product_id]?.title    || o.product_title    || 'Товар удалён',
         product_category: productMap[o.product_id]?.category || o.product_category || '',
+        // Заменяем хранимые имена на реальные никнеймы из profiles
+        buyer_name:  profileMap[o.buyer_id]  || o.buyer_name  || 'Покупатель',
+        seller_name: profileMap[o.seller_id] || o.seller_name || 'Продавец',
       });
 
       State.purchases = (br.data||[]).map(enrich);
@@ -2769,20 +2798,15 @@
       const dotEl  = document.getElementById('chatStatusDot');
       const textEl = document.getElementById('chatStatusText');
       if (!dotEl || !textEl) return;
-      const lastSeen = data?.last_seen;
-      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5*60*1000;
-      if (isOnline) {
-        dotEl.className  = 'chat-status-dot';
-        textEl.textContent = 'онлайн';
-      } else {
-        dotEl.className  = 'chat-status-dot offline';
-        const minAgo = lastSeen ? Math.floor((Date.now()-new Date(lastSeen).getTime())/60000) : null;
-        textEl.textContent = minAgo !== null ? `офлайн · ${minAgo} мин. назад` : 'офлайн';
-      }
-      // Обновляем имя с бейджами если есть данные
+      const online = isOnlineNow(data?.last_seen);
+      dotEl.className = online ? 'chat-status-dot' : 'chat-status-dot offline';
+      textEl.textContent = formatLastSeen(data?.last_seen);
+      // Обновляем имя с бейджами
       if (data?.username) {
         const nameEl = document.getElementById('chatPartnerName');
         if (nameEl) nameEl.innerHTML = renderUserBadges(data.username, data.is_verified, data.role);
+        // Обновляем partnerName в State чтобы уведомления тоже показывали ник
+        State.chat.partnerName = data.username;
       }
     } catch { /* тихо игнорируем */ }
   }
