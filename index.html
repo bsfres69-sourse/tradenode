@@ -419,6 +419,8 @@
     .status-delivered .status-dot{background:#818cf8}
     .status-completed{background:var(--emerald-glow);color:var(--emerald);border:1px solid rgba(16,185,129,.25)}
     .status-completed .status-dot{background:var(--emerald);animation:pulse 2s infinite}
+    .status-cancelled{background:rgba(239,68,68,.08);color:var(--danger);border:1px solid rgba(239,68,68,.22)}
+    .status-cancelled .status-dot{background:var(--danger)}
     .order-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);gap:8px;flex-wrap:wrap}
     .credentials-reveal{background:var(--bg-overlay);border:1px solid rgba(168,85,247,.2);border-radius:var(--radius-md);padding:11px 13px;margin-top:8px}
     .cred-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
@@ -546,7 +548,7 @@
       </a>
       <nav class="nav-links">
         <a href="#" class="nav-link active">Каталог</a>
-        <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="nav-link">Поддержка</a>
+        <a href="#" class="nav-link" onclick="requireAuth(openSupportTickets);return false">Поддержка</a>
       </nav>
       <div class="search-wrapper">
         <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
@@ -582,6 +584,9 @@
               </button>
               <button class="dropdown-item" onclick="goToOrders('sales')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Мои продажи
+              </button>
+              <button class="dropdown-item" onclick="closeDropdown();openSupportTickets()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Поддержка
               </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item admin-item" id="btnAdminPanel" style="display:none" onclick="openAdminPanel()">
@@ -680,7 +685,7 @@
         <span class="footer-copy">© 2025 TradeNode.</span>
         <div class="footer-links">
           <a href="#" class="footer-link" onclick="openRulesModal();return false">Правила</a>
-          <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="footer-link">Поддержка</a>
+          <a href="#" class="footer-link" onclick="requireAuth(openSupportTickets);return false">Поддержка</a>
         </div>
       </div>
     </div>
@@ -737,10 +742,10 @@
       <div class="modal-body">
         <p class="modal-subtitle" style="margin-bottom:18px">Связь с командой TradeNode</p>
         <div class="support-options">
-          <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener" class="support-option">
-            <div class="support-option-icon tg"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.013l-2.95-.924c-.64-.203-.653-.64.136-.953l11.5-4.437c.534-.194 1.002.131.396.549z"/></svg></div>
-            <div><div class="support-option-title">Telegram</div><div class="support-option-sub">@Phant0mNight · Ответим за 10 минут</div></div>
-          </a>
+          <div class="support-option" onclick="openSupportTickets()" style="cursor:pointer">
+            <div class="support-option-icon" style="background:var(--violet-glow);color:var(--violet)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <div><div class="support-option-title">Система тикетов</div><div class="support-option-sub">Открыть обращение · Ответим быстро</div></div>
+          </div>
         </div>
         <div style="background:var(--bg-raised);border-radius:var(--radius-md);padding:13px;font-size:13px;color:var(--text-secondary);line-height:1.6">
           🔒 Сделки защищены системой эскроу<br>⏱ Среднее время ответа — 15 минут<br>📅 Режим работы: 09:00 – 23:00 МСК
@@ -761,7 +766,7 @@
           <h3>3. Правила торговли</h3><p>Запрещено продавать ворованные, заблокированные аккаунты. Продавец отвечает за достоверность информации.</p>
           <h3>4. Безопасные сделки</h3><p>Средства замораживаются до подтверждения покупателем. Срок передачи — не более 48 часов.</p>
           <h3>5. Комиссия</h3><p>Сервис взимает 5% с каждой успешной сделки.</p>
-          <h3>6. Разрешение споров</h3><p>Обращайся в поддержку @Phant0mNight в течение 72 часов после сделки.</p>
+          <h3>6. Разрешение споров</h3><p>Обращайся в поддержку через систему тикетов в течение 72 часов после сделки.</p>
           <h3>7. Ответственность</h3><p>Администрация вправе блокировать аккаунты, нарушающие правила.</p>
         </div></div>
         <button class="btn-submit" style="margin-top:16px" onclick="closeModal('rulesModal')"><span class="btn-submit-text">Понятно, принимаю</span><span class="btn-submit-spinner"><span class="spinner"></span></span></button>
@@ -903,7 +908,7 @@
           <div class="safety-list">
             <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>Данные передаются только после оплаты</div>
             <div class="safety-item"><div class="safety-icon violet"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>Система эскроу — деньги у посредника</div>
-            <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>Поддержка 24/7 — @Phant0mNight</div>
+            <div class="safety-item"><div class="safety-icon emerald"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>Поддержка 24/7 — система тикетов</div>
           </div>
         </div>
         <div class="pd-right">
@@ -945,7 +950,7 @@
   <div class="chat-panel" id="chatPanel">
     <div class="chat-header">
       <button class="chat-back" onclick="closeChat()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-      <div class="chat-header-info"><div class="chat-partner-avatar" id="chatPartnerAvatar">?</div><div><div class="chat-partner-name" id="chatPartnerName">Собеседник</div><div class="chat-status"><span class="chat-status-dot"></span><span>онлайн</span></div></div></div>
+      <div class="chat-header-info"><div class="chat-partner-avatar" id="chatPartnerAvatar">?</div><div><div class="chat-partner-name" id="chatPartnerName">Собеседник</div><div class="chat-status"><span class="chat-status-dot" id="chatStatusDot"></span><span id="chatStatusText">...</span></div></div></div>
       <div class="chat-order-badge" id="chatOrderBadge">Сделка</div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
@@ -1003,7 +1008,6 @@
   const SUPABASE_URL  = 'https://vnhfmtrtdmelxpbrjfni.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuaGZtdHJ0ZG1lbHhwYnJqZm5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1Mzc3MTQsImV4cCI6MjA4OTExMzcxNH0.8dFX1-avnO4Ii--BcFcE-655dYKlkq9-Wx0pXiqKUUY';
   const ADMIN_ROLES   = ['owner','admin'];
-  const SUPPORT_TG    = 'https://t.me/Phant0mNight';
 
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -1096,9 +1100,7 @@
         по причине: <strong style="color:#ef4444">${escapeHtml(reason)}</strong>
       </p>
       <p style="font-size:13px;color:#4a5568;margin-top:20px">
-        Связь с поддержкой:
-        <a href="https://t.me/Phant0mNight" target="_blank" rel="noopener"
-           style="color:#a855f7;text-decoration:none;font-weight:600">@Phant0mNight</a>
+        Обратитесь в поддержку через систему тикетов после разблокировки.
       </p>`;
     document.body.appendChild(div);
   }
@@ -1310,6 +1312,17 @@
     renderSupportModal();
     document.getElementById('supportModal').classList.add('open');
     document.body.style.overflow='hidden';
+  }
+  // Алиас — все кнопки «Поддержка» вызывают эту функцию
+  function openSupportTickets() { openSupportModal(); }
+
+  function closeSupportModal() {
+    closeModal('supportModal');
+    // Чистим realtime подписку тикета
+    if (State.ticket?.subscription) {
+      sb.removeChannel(State.ticket.subscription);
+      State.ticket.subscription = null;
+    }
   }
   function openRulesModal()   { document.getElementById('rulesModal').classList.add('open'); document.body.style.overflow='hidden'; }
   function closeModal(id)     { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
@@ -1810,6 +1823,7 @@
         paid:      { cls:'status-paid',      l:'Оплачено' },
         delivered: { cls:'status-delivered', l:'Выдано' },
         completed: { cls:'status-completed', l:'Завершено' },
+        cancelled: { cls:'status-cancelled', l:'Возврат' },
       };
 
       el.innerHTML = data.map(o => {
@@ -1817,7 +1831,7 @@
         const title  = tmap[o.product_id] || 'Товар удалён';
         const buyer  = pmap[o.buyer_id]  || o.buyer_id?.slice(0,8)  || '—';
         const seller = pmap[o.seller_id] || o.seller_id?.slice(0,8) || '—';
-        const canConfirm = o.status !== 'completed';
+        const isDone = o.status === 'completed' || o.status === 'cancelled';
         return `<div class="admin-order-row">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
@@ -1826,7 +1840,8 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
             <span class="status-badge ${st.cls}" style="font-size:10px"><span class="status-dot"></span>${st.l}</span>
-            ${canConfirm ? `<button class="btn-confirm" style="font-size:11px;height:28px" onclick="adminConfirmOrder('${o.id}','${o.seller_id||''}','${Number(o.price||0)}',this)">✅ Подтвердить</button>` : ''}
+            ${!isDone ? `<button class="btn-confirm" style="font-size:11px;height:28px" onclick="adminConfirmOrder('${o.id}','${o.seller_id||''}','${Number(o.price||0)}',this)">✅ Подтвердить</button>` : ''}
+            ${!isDone ? `<button class="btn-danger-soft" style="font-size:11px;padding:3px 8px;min-height:0" onclick="adminRefundOrder('${o.id}','${Number(o.price||0)}','${o.buyer_id||''}','${o.seller_id||''}',this)">↩️ Возврат</button>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -2015,36 +2030,29 @@
     const el = document.getElementById('adminChatsList');
     el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
     try {
-      // Get latest message per order_id
       const { data, error } = await sb
         .from('messages')
-        .select('id,order_id,sender_id,sender_name,text,created_at,is_system')
+        .select('id, order_id, sender_id, text, created_at, is_system, profiles!messages_sender_id_fkey(username)')
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
-      if (!data?.length) {
-        el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Чатов нет</div>'; return;
-      }
-
-      // Deduplicate by order_id — keep most recent
+      if (!data?.length) { el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Чатов нет</div>'; return; }
       const seen = new Set();
       const convos = data.filter(m => { if(seen.has(m.order_id))return false; seen.add(m.order_id); return true; });
-
       el.innerHTML = convos.map(m => {
-        const isAuto = m.is_system;
-        const preview = isAuto ? `⚡ ${m.text.slice(0,50)}` : m.text.slice(0,60);
-        const time = relativeTime(m.created_at);
+        const uname  = m.profiles?.username || m.sender_id?.slice(0,8) || 'Пользователь';
+        const preview = m.is_system ? `⚡ ${(m.text||'').slice(0,50)}` : (m.text||'').slice(0,60);
         return `<div style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;cursor:pointer;transition:var(--transition)"
           onclick="adminOpenChat('${m.order_id}')"
           onmouseover="this.style.borderColor='var(--border-hover)'"
           onmouseout="this.style.borderColor='var(--border)'">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${(m.sender_name||'?').slice(0,2).toUpperCase()}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${uname.slice(0,2).toUpperCase()}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escapeHtml(m.sender_name||'Пользователь')}</div>
-            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${m.text.length>60?'…':''}</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">order: ${m.order_id.slice(0,18)}…</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escapeHtml(uname)}</div>
+            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${(m.text||'').length>60?'…':''}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">order: ${String(m.order_id).slice(0,20)}</div>
           </div>
-          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${time}</div>
+          <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${relativeTime(m.created_at)}</div>
         </div>`;
       }).join('');
     } catch(err) {
@@ -2229,7 +2237,7 @@
     try {
       const [profileRes, ordersRes, reviewsRes] = await Promise.all([
         sb.from('profiles')
-          .select('last_seen,is_verified,role')
+          .select('last_seen,is_verified,role,username')
           .eq('id', sellerId)
           .single(),
         sb.from('orders')
@@ -2243,13 +2251,15 @@
 
       // Online status
       const lastSeen = profileRes.data?.last_seen;
-      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5 * 60 * 1000;
+      const isOnline = lastSeen && (Date.now() - new Date(lastSeen).getTime()) < 5*60*1000;
+      const minAgo   = lastSeen ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 60000) : null;
       const onlineHtml = isOnline
         ? `<span style="color:var(--emerald);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--emerald);display:inline-block;animation:pulse 2s infinite"></span>Онлайн</span>`
-        : `<span style="color:var(--text-muted)">Офлайн${lastSeen?' · '+relativeTime(lastSeen):''}</span>`;
+        : `<span style="color:var(--text-muted)">Офлайн${minAgo !== null ? ' · ' + minAgo + ' мин. назад' : ''}</span>`;
 
-      // Verified badge & admin tag via global function
-      const isVerified = profileRes.data?.is_verified;
+      // Real username from profiles — fallback to seller_name from product
+      const realName   = profileRes.data?.username || State.currentProduct?.seller_name || 'Пользователь';
+      const isVerified = profileRes.data?.is_verified || false;
       const sellerRole = profileRes.data?.role || 'user';
 
       // Deals count (real, from DB)
@@ -2261,7 +2271,10 @@
 
       // Update seller card
       const sellerNameEl = document.getElementById('pdSellerName');
-      if(sellerNameEl) sellerNameEl.innerHTML = renderUserBadges(State.currentProduct?.seller_name||'Аноним', isVerified, sellerRole);
+      if(sellerNameEl) sellerNameEl.innerHTML = renderUserBadges(realName, isVerified, sellerRole);
+
+      const sellerMetaEl = document.getElementById('pdSellerMeta');
+      if(sellerMetaEl) sellerMetaEl.textContent = realName;
 
       const badgeEl = document.getElementById('pdSellerBadge');
       if(badgeEl) badgeEl.innerHTML = onlineHtml;
@@ -2274,8 +2287,10 @@
 
     } catch(err) {
       console.warn('[loadSellerStats]', err.message);
-      document.getElementById('pdSellerRating').textContent = '—';
-      document.getElementById('pdSellerDeals').textContent  = '—';
+      const rEl = document.getElementById('pdSellerRating');
+      const dEl = document.getElementById('pdSellerDeals');
+      if(rEl) rEl.textContent = '—';
+      if(dEl) dEl.textContent = '—';
     }
   }
 
@@ -2440,22 +2455,31 @@
       paid:      {cls:'status-paid',      label:'Оплачено'},
       delivered: {cls:'status-delivered', label:'Выдано продавцом'},
       completed: {cls:'status-completed', label:'Завершено'},
+      cancelled: {cls:'status-cancelled', label:'Возврат'},
     };
     const st=stMap[o.status]||stMap.pending, date=relativeTime(o.created_at);
     const price=o.price?`${Number(o.price).toLocaleString('ru')} ₽`:'—';
-    const showCreds=isBuyer&&o.status!=='pending'&&o.status!=='paid'&&(o.acc_login||o.acc_pass);
+    const showCreds=isBuyer&&o.status!=='pending'&&o.status!=='paid'&&o.status!=='cancelled'&&(o.acc_login||o.acc_pass);
     const credsHtml=showCreds?`<div class="credentials-reveal"><div class="cred-label">🔑 Данные аккаунта</div>${o.acc_login?`<div class="cred-row"><span class="cred-key">Логин</span><span class="cred-val">${escapeHtml(o.acc_login)}</span></div>`:''}${o.acc_pass?`<div class="cred-row"><span class="cred-key">Пароль</span><span class="cred-val">${escapeHtml(o.acc_pass)}</span></div>`:''}</div>`:'';
     let actionBtn='';
-    if (isBuyer && (o.status==='pending'||o.status==='paid'||o.status==='delivered')) {
+    if (o.status === 'cancelled') {
+      // Возврат уже выполнен — кнопок нет
+    } else if (isBuyer && (o.status==='pending'||o.status==='paid'||o.status==='delivered')) {
       actionBtn=`<button class="btn-confirm" onclick="confirmOrderReceived('${o.id}','${o.seller_id||''}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Подтвердить получение</button>`;
     } else if (!isBuyer && (o.status==='pending'||o.status==='paid')) {
       actionBtn=`<button class="btn-confirm" onclick="markAsDelivered('${o.id}',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:3px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Отметить как выдано</button>`;
     }
+    // Кнопка возврата — для продавца на незавершённых заказах
+    const refundBtn = (!isBuyer && o.status!=='cancelled' && o.status!=='completed')
+      ? `<button class="btn-danger-soft" style="font-size:11px;padding:4px 10px;min-height:0" onclick="refundOrder('${o.id}',this)">↩️ Возврат</button>`
+      : '';
     const pname=isBuyer?(o.seller_name||'Продавец'):(o.buyer_name||'Покупатель');
     const pid=isBuyer?o.seller_id:o.buyer_id;
     const uc=State.chat.unread[String(o.id)]||0;
-    const chatBtn=`<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Чат${uc>0?'<span class="chat-unread-dot"></span>':''}</button>`;
-    const fc=[actionBtn,chatBtn].filter(Boolean).join('');
+    const chatBtn=o.status!=='cancelled'
+      ? `<button class="btn-chat-order" id="chatBtn_${o.id}" onclick="openChatFromOrder('${o.id}','${escapeHtml(pname)}','${pid||''}','${escapeHtml(o.product_title||'')}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Чат${uc>0?'<span class="chat-unread-dot"></span>':''}</button>`
+      : '';
+    const fc=[actionBtn, refundBtn, chatBtn].filter(Boolean).join('');
     return `<div class="order-card" id="orderCard_${o.id}" style="animation-delay:${idx*.05}s">
       <div class="order-card-header">
         <div class="order-card-emoji">${meta.emoji}</div>
@@ -2533,11 +2557,94 @@
 
   function updateOrderStatus(orderId, ns){
     const card=document.getElementById(`orderCard_${orderId}`); if(!card){renderOrders();return;}
-    const sm={pending:{cls:'status-paid',label:'Ожидает выдачи'},delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'}};
+    const sm={pending:{cls:'status-pending',label:'Ожидает выдачи'},delivered:{cls:'status-delivered',label:'Выдано'},completed:{cls:'status-completed',label:'Завершено'},cancelled:{cls:'status-cancelled',label:'Возврат'}};
     const st=sm[ns]; if(!st)return;
     const badge=card.querySelector('.status-badge'); if(badge){badge.className=`status-badge ${st.cls}`;badge.innerHTML=`<span class="status-dot"></span>${st.label}`;}
     const footer=card.querySelector('.order-card-footer'); if(footer){footer.style.transition='opacity .3s';footer.style.opacity='0';setTimeout(()=>footer.remove(),300);}
     ['purchases','sales'].forEach(k=>{ if(!State[k])return; const o=State[k].find(x=>String(x.id)===String(orderId)); if(o)o.status=ns; });
+  }
+
+  // ── Возврат средств ───────────────────────────────────────────
+  async function refundOrder(orderId, btn) {
+    if (!confirm('Сделать возврат? Деньги вернутся покупателю, а у продавца спишутся.')) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      // 1. Получаем данные заказа
+      const allOrders = [...(State.purchases||[]), ...(State.sales||[])];
+      let order = allOrders.find(o => String(o.id) === String(orderId));
+      if (!order) {
+        const { data, error } = await sb.from('orders').select('*').eq('id', orderId).single();
+        if (error) throw error;
+        order = data;
+      }
+      const amount   = Number(order?.price || 0);
+      const buyerId  = order?.buyer_id;
+      const sellerId = order?.seller_id;
+
+      // 2. Ставим статус cancelled
+      const { error: oe } = await sb.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+      if (oe) throw oe;
+
+      // 3. Перемещаем деньги: продавец → покупатель
+      if (amount > 0) {
+        const [sellerRes, buyerRes] = await Promise.all([
+          sellerId ? sb.from('profiles').select('balance').eq('id', sellerId).single() : { data: null },
+          buyerId  ? sb.from('profiles').select('balance').eq('id', buyerId).single()  : { data: null },
+        ]);
+        const ops = [];
+        if (sellerId && sellerRes.data) {
+          const nb = Math.max(0, (Number(sellerRes.data.balance)||0) - amount);
+          ops.push(sb.from('profiles').update({ balance: nb }).eq('id', sellerId));
+        }
+        if (buyerId && buyerRes.data) {
+          const nb = (Number(buyerRes.data.balance)||0) + amount;
+          ops.push(sb.from('profiles').update({ balance: nb }).eq('id', buyerId));
+        }
+        await Promise.all(ops);
+      }
+
+      // 4. Системное сообщение в чат
+      await sb.from('messages').insert([{
+        order_id:    String(orderId),
+        sender_id:   State.user?.id,
+        receiver_id: buyerId || null,
+        text:        `↩️ Возврат оформлен. Сумма ${amount.toLocaleString('ru')} ₽ возвращена покупателю.`,
+        is_system:   true,
+      }]).catch(() => {});
+
+      showToast(`↩️ Возврат ${amount.toLocaleString('ru')} ₽ выполнен`, 'success');
+      updateOrderStatus(orderId, 'cancelled');
+
+    } catch(err) {
+      showToast('Ошибка возврата: ' + err.message, 'error');
+      btn.disabled = false; btn.textContent = '↩️ Возврат';
+    }
+  }
+
+  // Возврат из Админ-панели
+  async function adminRefundOrder(orderId, price, buyerId, sellerId, btn) {
+    if (!confirm(`Сделать возврат ${Number(price).toLocaleString('ru')} ₽ покупателю?`)) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const { error: oe } = await sb.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+      if (oe) throw oe;
+      const amount = Number(price);
+      if (amount > 0) {
+        const [sellerRes, buyerRes] = await Promise.all([
+          sellerId ? sb.from('profiles').select('balance').eq('id', sellerId).single() : { data: null },
+          buyerId  ? sb.from('profiles').select('balance').eq('id', buyerId).single()  : { data: null },
+        ]);
+        const ops = [];
+        if (sellerId && sellerRes.data) ops.push(sb.from('profiles').update({ balance: Math.max(0,(Number(sellerRes.data.balance)||0) - amount) }).eq('id', sellerId));
+        if (buyerId  && buyerRes.data)  ops.push(sb.from('profiles').update({ balance: (Number(buyerRes.data.balance)||0) + amount }).eq('id', buyerId));
+        await Promise.all(ops);
+      }
+      showToast(`↩️ Возврат ${amount.toLocaleString('ru')} ₽ выполнен`, 'success');
+      await loadAdminOrders();
+    } catch(err) {
+      showToast('Ошибка: ' + err.message, 'error');
+      btn.disabled = false; btn.textContent = '↩️ Возврат';
+    }
   }
 
   // ============================================================
@@ -2596,7 +2703,37 @@
   // ============================================================
   // CHAT (real-time via messages table)
   // ============================================================
-  function openChatFromProduct(){ const p=State.currentProduct; if(!p)return; if(State.user?.id===(p.seller_id||p.user_id)){showToast('Нельзя писать самому себе','error');return;} closeProductModal(); openChat({orderId:`product_${p.id}`,partnerName:p.seller_name||'Продавец',partnerId:p.seller_id||p.user_id||null,orderTitle:p.title}); }
+  async function openChatFromProduct(){
+    const p=State.currentProduct; if(!p)return;
+    const sellerId = p.seller_id||p.user_id||null;
+    if(State.user?.id===sellerId){showToast('Нельзя писать самому себе','error');return;}
+    closeProductModal();
+    if(!State.user){showAuthModal('login');return;}
+    // Ищем существующий заказ между текущим юзером и продавцом по этому товару
+    try {
+      const { data: existing } = await sb
+        .from('orders')
+        .select('id, products(title)')
+        .eq('buyer_id', State.user.id)
+        .eq('seller_id', sellerId)
+        .eq('product_id', p.id)
+        .order('created_at', {ascending: false})
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        // Уже есть заказ — открываем его чат
+        openChat({orderId: String(existing.id), partnerName: p.seller_name||'Продавец', partnerId: sellerId, orderTitle: p.title});
+      } else {
+        // Нет заказа — используем виртуальный order_id вида "pre_<productId>_<buyerId>"
+        // Сообщения всё равно сохраняются в messages с этим order_id
+        const virtualId = `pre_${p.id}_${State.user.id}`;
+        openChat({orderId: virtualId, partnerName: p.seller_name||'Продавец', partnerId: sellerId, orderTitle: p.title});
+      }
+    } catch {
+      // fallback
+      openChat({orderId:`product_${p.id}`,partnerName:p.seller_name||'Продавец',partnerId:sellerId,orderTitle:p.title});
+    }
+  }
   function openChatFromOrder(oid,pn,pid,ot){ openChat({orderId:String(oid),partnerName:pn,partnerId:pid,orderTitle:ot}); }
 
   function openChat({orderId,partnerName,partnerId,orderTitle}){
@@ -2750,42 +2887,45 @@
     if (tab==='messages') loadMyMessages();
   }
 
-  // ── Inbox: last message per unique order_id involving current user
+  // ── Inbox: последнее сообщение на каждый уникальный order_id
   async function loadMyMessages() {
     const el=document.getElementById('myMessagesContainer');
     if(!State.user){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Войди в аккаунт</div>';return;}
     el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted)">Загрузка…</div>';
     try {
-      // Fetch last 60 messages where user is either sender or is in one of their orders
+      // Берём все сообщения где я участвую (как получатель или отправитель в своих заказах)
       const { data, error } = await sb
         .from('messages')
-        .select('id,order_id,sender_id,sender_name,text,created_at,is_system')
-        .neq('sender_id', State.user.id) // messages FROM others TO me
+        .select('id, order_id, sender_id, text, created_at, is_system, profiles!messages_sender_id_fkey(username, is_verified, role)')
+        .neq('sender_id', State.user.id)
+        .eq('is_system', false)
         .order('created_at', {ascending: false})
-        .limit(60);
-
+        .limit(80);
       if (error) throw error;
-
       if (!data?.length) {
         el.innerHTML=`<div class="drawer-empty"><div class="drawer-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Нет сообщений</h3><p>Начни сделку и пообщайся с продавцом</p></div>`;
         return;
       }
-
-      // Deduplicate by order_id — show only last message per conversation
+      // Дедупликация по order_id
       const seen = new Set();
       const unique = data.filter(m => {
         if (seen.has(m.order_id)) return false;
         seen.add(m.order_id); return true;
       });
-
       el.innerHTML = unique.map(m => {
-        const time = relativeTime(m.created_at);
-        const preview = m.is_system ? `⚡ ${m.text.slice(0,60)}` : m.text.slice(0,60);
-        return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;transition:var(--transition)" onclick="openChatFromOrder('${m.order_id}','${escapeHtml(m.sender_name||'Пользователь')}','${m.sender_id}','')" onmouseover="this.style.borderColor='var(--border-hover)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${(m.sender_name||'?').slice(0,2).toUpperCase()}</div>
+        const senderUsername = m.profiles?.username || m.sender_id?.slice(0,8) || 'Пользователь';
+        const isVerified     = m.profiles?.is_verified || false;
+        const senderRole     = m.profiles?.role || 'user';
+        const initials       = senderUsername.slice(0,2).toUpperCase();
+        const time           = relativeTime(m.created_at);
+        const preview        = (m.text||'').slice(0,60);
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;transition:var(--transition)"
+          onclick="openChatFromOrder('${m.order_id}','${escapeHtml(senderUsername)}','${m.sender_id}','')"
+          onmouseover="this.style.borderColor='var(--border-hover)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet-dim),var(--emerald-dim));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${escapeHtml(m.sender_name||'Пользователь')}</div>
-            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${m.text.length>60?'…':''}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px">${renderUserBadges(senderUsername, isVerified, senderRole)}</div>
+            <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}${(m.text||'').length>60?'…':''}</div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);flex-shrink:0">${time}</div>
         </div>`;
@@ -2823,8 +2963,7 @@
       const { error } = await sb
         .from('products')
         .delete()
-        .eq('id', id)
-        .eq('seller_id', State.user.id); // Double check ownership
+        .eq('id', id);
       if (error) throw error;
       document.getElementById(`myListing_${id}`)?.remove();
       State.allProducts = State.allProducts.filter(p=>String(p.id)!==String(id));
@@ -2832,7 +2971,7 @@
       showToast('Объявление удалено', 'success');
     } catch(err) {
       console.error('[deleteMyListing]', err.message);
-      showToast('Ошибка удаления: ' + (err.message?.includes('row-level') ? 'Нет прав (RLS)' : err.message), 'error');
+      showToast('Ошибка удаления: ' + err.message, 'error');
       btn.disabled=false; btn.textContent='Удалить';
     }
   }
